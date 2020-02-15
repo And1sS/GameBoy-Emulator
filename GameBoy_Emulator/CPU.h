@@ -18,6 +18,10 @@
 #define A_REG 6
 #define F_REG 7
 
+
+// TODO: IMPLEMENT CONSTRUCTOR
+
+
 class CPU
 {
 private:
@@ -45,9 +49,17 @@ private:
 	inline void reset_c_bit();
 
 	inline uint8_t get_HL();
+	inline void set_HL(uint8_t a);
 
-	uint8_t add_with_carry(uint8_t a, uint8_t b, bool use_carry);
-	uint8_t sub_with_carry(uint8_t a, uint8_t b, bool use_carry);
+
+	uint8_t add_instr(uint8_t a, uint8_t b, bool use_carry);
+	uint8_t sub_instr(uint8_t a, uint8_t b, bool use_carry);
+	uint8_t and_instr(uint8_t a, uint8_t b); 
+	uint8_t or_instr(uint8_t a, uint8_t b);
+	uint8_t xor_instr(uint8_t a, uint8_t b);
+	void cp_instr(uint8_t a, uint8_t b);
+	uint8_t inc_instr(uint8_t a);
+	uint8_t dec_instr(uint8_t a);
 
 public:
 	void execute_instruction();
@@ -106,4 +118,9 @@ inline void CPU::reset_c_bit()
 inline uint8_t CPU::get_HL()
 {
 	return mem->read_byte((regs[H_REG] << 8) + regs[L_REG]);
+}
+
+inline void CPU::set_HL(uint8_t a)
+{
+	return mem->write_byte((regs[H_REG] << 8) + regs[L_REG], a);
 }
