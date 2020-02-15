@@ -30,6 +30,7 @@ private:
 
 	Memory* mem;
 
+	inline uint8_t read_instr();
 	inline void set_z_bit();
 	inline void reset_z_bit();
 
@@ -43,16 +44,19 @@ private:
 	inline void set_c_bit();
 	inline void reset_c_bit();
 
-	uint8_t get_HL()
-	{
-		return mem->read_byte((regs[H_REG] << 8) + regs[L_REG]);
-	}
+	inline uint8_t get_HL();
 
 	uint8_t add_with_carry(uint8_t a, uint8_t b, bool use_carry);
+	uint8_t sub_with_carry(uint8_t a, uint8_t b, bool use_carry);
 
 public:
 	void execute_instruction();
 };
+
+inline uint8_t CPU::read_instr()
+{
+	return mem->read_byte(PC++);
+}
 
 inline void CPU::set_z_bit()
 {
@@ -97,4 +101,9 @@ inline void CPU::set_c_bit()
 inline void CPU::reset_c_bit()
 {
 	F &= ~(1 << C_BIT);
+}
+
+inline uint8_t CPU::get_HL()
+{
+	return mem->read_byte((regs[H_REG] << 8) + regs[L_REG]);
 }
