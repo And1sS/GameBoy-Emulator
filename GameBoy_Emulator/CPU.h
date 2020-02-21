@@ -35,12 +35,15 @@ private:
 	Memory* mem;
 
 	inline uint8_t read_instr();
+
 	inline void set_z_bit();
 	inline void reset_z_bit();
 
+	inline uint8_t get_n_bit();
 	inline void set_n_bit();
 	inline void reset_n_bit();
 	
+	inline uint8_t get_h_bit();
 	inline void set_h_bit();
 	inline void reset_h_bit();
 	
@@ -60,8 +63,10 @@ private:
 	void cp_instr(uint8_t a, uint8_t b);
 	uint8_t inc_instr(uint8_t a);
 	uint8_t dec_instr(uint8_t a);
+	void daa_instr();
 
 public:
+	CPU(Memory* mem) : mem(mem) {}
 	void execute_instruction();
 };
 
@@ -80,6 +85,11 @@ inline void CPU::reset_z_bit()
 	F &= ~(1 << Z_BIT);
 }
 
+inline uint8_t CPU::get_h_bit()
+{
+	return (F & (1 << H_BIT)) >> H_BIT;
+}
+
 inline void CPU::set_h_bit()
 {
 	F |= 1 << H_BIT;
@@ -88,6 +98,11 @@ inline void CPU::set_h_bit()
 inline void CPU::reset_h_bit()
 {
 	F &= ~(1 << H_BIT);
+}
+
+inline uint8_t CPU::get_n_bit()
+{
+	return (F & (1 << N_BIT)) >> N_BIT;
 }
 
 inline void CPU::set_n_bit()

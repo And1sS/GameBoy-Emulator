@@ -13,7 +13,7 @@ void CPU::execute_instruction()
 	}
 	else if (opcode >= 0x80 && opcode <= 0x85)			// ADD A, r
 	{
-		regs[A_REG] += add_instr(regs[A_REG], regs[opcode & 0x0F], false);
+		regs[A_REG] = add_instr(regs[A_REG], regs[opcode & 0x0F], false);
 		clock_cycle += 4;
 	}
 	else if (opcode == 0x86)							// ADD A, (HL)
@@ -26,14 +26,14 @@ void CPU::execute_instruction()
 		regs[A_REG] = add_instr(regs[A_REG], read_instr(), false);
 		clock_cycle += 8;
 	}
-	if (opcode == 0x8F)									// ADC A, A
+	else if (opcode == 0x8F)							// ADC A, A
 	{
 		regs[A_REG] = add_instr(regs[A_REG], regs[A_REG], true);
 		clock_cycle += 4;
 	}
 	else if (opcode >= 0x88 && opcode <= 0x8D)			// ADC A, r
 	{
-		regs[A_REG] += add_instr(regs[A_REG], regs[(opcode & 0x0F) - 8], true);
+		regs[A_REG] = add_instr(regs[A_REG], regs[(opcode & 0x0F) - 8], true);
 		clock_cycle += 4;
 	}
 	else if (opcode == 0x8E)							// ADC A, (HL)
@@ -56,7 +56,7 @@ void CPU::execute_instruction()
 	}
 	else if (opcode >= 0x90 && opcode <= 0x95)			// SUB A, r
 	{
-		regs[A_REG] += sub_instr(regs[A_REG], regs[opcode & 0x0F], false);
+		regs[A_REG] = sub_instr(regs[A_REG], regs[opcode & 0x0F], false);
 		clock_cycle += 4;
 	}
 	else if (opcode == 0x96)							// SUB A, (HL)
@@ -69,14 +69,14 @@ void CPU::execute_instruction()
 		regs[A_REG] = sub_instr(regs[A_REG], read_instr(), false);
 		clock_cycle += 8;
 	}
-	if (opcode == 0x9F)									// SBC A, A
+	else if (opcode == 0x9F)							// SBC A, A
 	{
 		regs[A_REG] = sub_instr(regs[A_REG], regs[A_REG], true);
 		clock_cycle += 4;
 	}
 	else if (opcode >= 0x98 && opcode <= 0x9D)			// SBC A, r
 	{
-		regs[A_REG] += sub_instr(regs[A_REG], regs[(opcode & 0x0F) - 8], true);
+		regs[A_REG] = sub_instr(regs[A_REG], regs[(opcode & 0x0F) - 8], true);
 		clock_cycle += 4;
 	}
 	else if (opcode == 0x9E)							// SBC A, (HL)
@@ -261,6 +261,34 @@ void CPU::execute_instruction()
 		set_HL(dec_instr(get_HL()));
 		clock_cycle += 12;
 	}
+
+	else if (opcode == 0x27)							// DAA
+	{
+		daa_instr();
+		clock_cycle += 4;
+	}
+
+	// FIX ME
+	else if (opcode == 0x3E)
+	{
+		regs[A_REG] = read_instr();
+		clock_cycle += 8;
+	}
+	else if (opcode == 0x06)
+	{
+		regs[B_REG] = read_instr();
+		clock_cycle += 8;
+	 }
+	else if (opcode == 0xEA)
+	{
+		uint8_t low_byte = read_instr();
+		uint8_t high_byte = read_instr();
+		mem->write_byte((high_byte << 8) + low_byte, regs[A_REG]);
+		clock_cycle += 12;
+	}
+
+	else
+		throw "Unimplemented instruction";
 }
 
 uint8_t CPU::add_instr(uint8_t a, uint8_t b, bool use_carry)
@@ -426,4 +454,55 @@ uint8_t CPU::dec_instr(uint8_t a)
 		reset_h_bit();
 
 	return res;
+}
+
+void CPU::daa_instr()
+{
+	uint8_t old_A = regs[A_REG];
+	uint8_t old_carry = get_c_bit();
+	if (get_n_bit() == 0)
+	{
+		if (((regs[A_REG] & 0x0F) > 9) || get_h_bit())
+		{
+			uint16_t temp = regs[A_REG] + 6;
+			regs[A_REG] = temp & 0xFF;
+
+			if (old_carry || (temp > 0xFF))
+				set_c_bit();
+			else
+				reset_c_bit();
+		}
+		if ((old_A > 0x99) || get_c_bit())
+		{
+			regs[A_REG] += 0x60;
+			set_c_bit();
+		}
+		else
+			reset_c_bit();
+	}
+	else
+	{
+		if (((regs[A_REG] & 0x0F) > 9) || get_h_bit())
+		{
+			uint16_t temp = regs[A_REG] - 6;
+			regs[A_REG] = temp & 0xFF;
+
+			if (old_carry || (temp < 0))
+				set_c_bit();
+			else
+				reset_c_bit();
+		}
+		if ((old_A > 0x99) || get_c_bit())
+		{
+			regs[A_REG] -= 0x60;
+			set_c_bit();
+		}
+	}
+
+	if (regs[A_REG] == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	set_n_bit();
 }
