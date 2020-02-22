@@ -51,9 +51,16 @@ private:
 	inline void set_c_bit();
 	inline void reset_c_bit();
 
-	inline uint8_t get_HL();
-	inline void set_HL(uint8_t a);
+	inline uint8_t read_from_HL();
+	inline void write_to_HL(uint8_t a);
+	inline void inc_HL();
+	inline void dec_HL();
 
+	inline uint8_t read_from_BC();
+	inline void write_to_BC(uint8_t a);
+	
+	inline uint8_t read_from_DE();
+	inline void write_to_DE(uint8_t a);
 
 	uint8_t add_instr(uint8_t a, uint8_t b, bool use_carry);
 	uint8_t sub_instr(uint8_t a, uint8_t b, bool use_carry);
@@ -64,6 +71,9 @@ private:
 	uint8_t inc_instr(uint8_t a);
 	uint8_t dec_instr(uint8_t a);
 	void daa_instr();
+	void cpl_instr();
+	void scf_instr();
+	void ccf_instr();
 
 public:
 	CPU(Memory* mem) : mem(mem) {}
@@ -130,12 +140,46 @@ inline void CPU::reset_c_bit()
 	F &= ~(1 << C_BIT);
 }
 
-inline uint8_t CPU::get_HL()
+inline uint8_t CPU::read_from_HL()
 {
 	return mem->read_byte((regs[H_REG] << 8) + regs[L_REG]);
 }
 
-inline void CPU::set_HL(uint8_t a)
+inline void CPU::write_to_HL(uint8_t a)
 {
 	return mem->write_byte((regs[H_REG] << 8) + regs[L_REG], a);
+}
+
+inline uint8_t CPU::read_from_BC()
+{
+	return mem->read_byte((regs[B_REG] << 8) + regs[C_REG]);
+}
+
+inline void CPU::write_to_BC(uint8_t a)
+{
+	return mem->write_byte((regs[B_REG] << 8) + regs[C_REG], a);
+}
+
+inline uint8_t CPU::read_from_DE()
+{
+	return mem->read_byte((regs[D_REG] << 8) + regs[E_REG]);
+}
+
+inline void CPU::write_to_DE(uint8_t a)
+{
+	return mem->write_byte((regs[D_REG] << 8) + regs[E_REG], a);
+}
+
+inline void CPU::inc_HL()
+{
+	uint16_t value = (regs[H_REG] << 8) + regs[L_REG] + 1;
+	regs[H_REG] = (value >> 8) & 0xFF;
+	regs[L_REG] = value & 0xFF;
+}
+
+inline void CPU::dec_HL()
+{
+	uint16_t value = (regs[H_REG] << 8) + regs[L_REG] - 1;
+	regs[H_REG] = (value >> 8) & 0xFF;
+	regs[L_REG] = value & 0xFF;
 }

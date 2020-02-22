@@ -17,8 +17,6 @@ namespace UnitTest
 	{
 		
 	public:
-		
-
 		TEST_METHOD(simple_add)
 		{
 			Memory* mem = new Memory;
