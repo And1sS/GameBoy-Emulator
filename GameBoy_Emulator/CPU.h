@@ -34,8 +34,11 @@ private:
 
 	Memory* mem;
 
-	inline uint8_t read_instr();
+	inline uint8_t read_next_instr();
+	inline uint8_t read_d8() { read_next_instr(); }
+	inline uint16_t read_d16();
 
+	// Setting / resetting flags
 	inline void set_z_bit();
 	inline void reset_z_bit();
 
@@ -51,17 +54,36 @@ private:
 	inline void set_c_bit();
 	inline void reset_c_bit();
 
-	inline uint8_t read_from_HL();
-	inline void write_to_HL(uint8_t a);
 	inline void inc_HL();
 	inline void dec_HL();
 
+
+	// Reading from memory / writing to memory (addr is stored in register)
 	inline uint8_t read_from_BC();
 	inline void write_to_BC(uint8_t a);
-	
+
 	inline uint8_t read_from_DE();
 	inline void write_to_DE(uint8_t a);
+	
+	inline uint8_t read_from_HL();
+	inline void write_to_HL(uint8_t a);
+	
 
+	// Reading from registers / writing to registers
+	inline uint16_t get_BC();
+	inline void set_BC(uint16_t a);
+
+	inline uint16_t get_DE();
+	inline void set_DE(uint16_t a);
+
+	inline uint16_t get_HL();
+	inline void set_HL(uint16_t a);
+
+	inline uint16_t get_AF();
+	inline void set_AF(uint16_t a);
+
+	
+	// ALU Instructions
 	uint8_t add_instr(uint8_t a, uint8_t b, bool use_carry);
 	uint8_t sub_instr(uint8_t a, uint8_t b, bool use_carry);
 	uint8_t and_instr(uint8_t a, uint8_t b); 
@@ -74,15 +96,23 @@ private:
 	void cpl_instr();
 	void scf_instr();
 	void ccf_instr();
+	void push_instr(uint16_t a);
+	uint16_t pop_instr();
 
 public:
 	CPU(Memory* mem) : mem(mem) {}
 	void execute_instruction();
 };
 
-inline uint8_t CPU::read_instr()
+inline uint8_t CPU::read_next_instr()
 {
 	return mem->read_byte(PC++);
+}
+
+inline uint16_t CPU::read_d16()
+{
+	uint16_t d16 = read_d8();
+	return d16 + (read_d8() << 8);
 }
 
 inline void CPU::set_z_bit()
@@ -140,46 +170,87 @@ inline void CPU::reset_c_bit()
 	F &= ~(1 << C_BIT);
 }
 
-inline uint8_t CPU::read_from_HL()
+inline uint16_t CPU::get_BC()
 {
-	return mem->read_byte((regs[H_REG] << 8) + regs[L_REG]);
+	return (regs[B_REG] << 8) + regs[C_REG];
 }
 
-inline void CPU::write_to_HL(uint8_t a)
+inline void CPU::set_BC(uint16_t a)
 {
-	return mem->write_byte((regs[H_REG] << 8) + regs[L_REG], a);
+	regs[B_REG] = (a >> 8) & 0xFF;
+	regs[C_REG] = a & 0xFF;
+}
+
+inline uint16_t CPU::get_DE()
+{
+	return (regs[D_REG] << 8) + regs[E_REG];
+}
+
+inline void CPU::set_DE(uint16_t a)
+{
+	regs[D_REG] = (a >> 8) & 0xFF;
+	regs[E_REG] = a & 0xFF;
+}
+
+inline uint16_t CPU::get_HL()
+{
+	return (regs[H_REG] << 8) + regs[L_REG];
+}
+
+inline void CPU::set_HL(uint16_t a)
+{
+	regs[H_REG] = (a >> 8) & 0xFF;
+	regs[L_REG] = a & 0xFF;
+}
+
+inline uint16_t CPU::get_AF()
+{
+	return (regs[A_REG] << 8) + regs[F_REG];
+}
+
+inline void CPU::set_AF(uint16_t a)
+{
+	regs[A_REG] = (a >> 8) & 0xFF;
+	regs[F_REG] = a & 0xFF;
 }
 
 inline uint8_t CPU::read_from_BC()
 {
-	return mem->read_byte((regs[B_REG] << 8) + regs[C_REG]);
+	return mem->read_byte(get_BC());
 }
 
 inline void CPU::write_to_BC(uint8_t a)
 {
-	return mem->write_byte((regs[B_REG] << 8) + regs[C_REG], a);
+	return mem->write_byte(get_BC(), a);
 }
 
 inline uint8_t CPU::read_from_DE()
 {
-	return mem->read_byte((regs[D_REG] << 8) + regs[E_REG]);
+	return mem->read_byte(get_DE());
 }
 
 inline void CPU::write_to_DE(uint8_t a)
 {
-	return mem->write_byte((regs[D_REG] << 8) + regs[E_REG], a);
+	return mem->write_byte(get_DE(), a);
+}
+
+inline uint8_t CPU::read_from_HL()
+{
+	return mem->read_byte(get_HL());
+}
+
+inline void CPU::write_to_HL(uint8_t a)
+{
+	return mem->write_byte(get_HL(), a);
 }
 
 inline void CPU::inc_HL()
 {
-	uint16_t value = (regs[H_REG] << 8) + regs[L_REG] + 1;
-	regs[H_REG] = (value >> 8) & 0xFF;
-	regs[L_REG] = value & 0xFF;
+	set_HL(get_HL() + 1);
 }
 
 inline void CPU::dec_HL()
 {
-	uint16_t value = (regs[H_REG] << 8) + regs[L_REG] - 1;
-	regs[H_REG] = (value >> 8) & 0xFF;
-	regs[L_REG] = value & 0xFF;
+	set_HL(get_HL() - 1);
 }
+
