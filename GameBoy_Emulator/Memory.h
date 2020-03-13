@@ -8,6 +8,7 @@ class Memory
 {
 private:
 	uint8_t mem[0xFFFF];
+
 public:
 	inline uint8_t read_byte(uint16_t addr) const
 	{

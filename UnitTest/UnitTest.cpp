@@ -6,12 +6,12 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace UnitTest
 {
-	constexpr uint8_t LDA = 0x3e;
-	constexpr uint8_t STA = 0xea;
-	constexpr uint8_t LDB = 0x06;
+	constexpr uint8_t LDA     = 0x3e;
+	constexpr uint8_t STA     = 0xea;
+	constexpr uint8_t LDB     = 0x06;
 	constexpr uint8_t ADD_A_B = 0x80;
 	constexpr uint8_t SUB_A_B = 0x90;
-	constexpr uint8_t DAA = 0x27;
+	constexpr uint8_t DAA     = 0x27;
 
 	TEST_CLASS(UnitTest)
 	{
@@ -48,7 +48,7 @@ namespace UnitTest
 					for (size_t i = 0; i < 5; i++)
 						cpu.execute_instruction();
 
-					Assert::AreEqual(mem->read_byte(0x0100), to_bcd((i+j) % 100));
+					Assert::AreEqual(mem->read_byte(0x0100), to_bcd((i + j) % 100));
 
 
 					mem->write_bytes(0,
