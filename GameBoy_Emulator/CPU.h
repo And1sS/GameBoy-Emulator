@@ -45,6 +45,7 @@ private:
 	uint16_t  read_d16();
 
 	// Setting / resetting   flags
+	uint8_t   get_z_bit();
 	void      set_z_bit();
 	void      reset_z_bit();
 
@@ -98,6 +99,7 @@ private:
 	uint8_t   inc_instr(uint8_t a);
 	uint8_t   dec_instr(uint8_t a);
 	uint16_t  pop_instr();
+	uint16_t  add16_instr(uint16_t a, uint16_t b);
 
 	void      push_instr(uint16_t a);
 	void      cp_instr(uint8_t a, uint8_t b);
@@ -105,7 +107,8 @@ private:
 	void      cpl_instr();
 	void      scf_instr();
 	void      ccf_instr();
-	void      ldhl_spd8_instr();
+	void      ld_hl_spd8_instr();
+	void      add_spd8_instr();
 	
 public:
 	CPU(Memory* mem) : mem(mem) {}
@@ -127,6 +130,11 @@ inline uint16_t CPU::read_d16()
 {
 	uint16_t d16 = read_d8();
 	return d16 + (read_d8() << 8);
+}
+
+inline uint8_t CPU::get_z_bit()
+{
+	return (F & (1 << Z_BIT)) >> Z_BIT;
 }
 
 inline void CPU::set_z_bit()

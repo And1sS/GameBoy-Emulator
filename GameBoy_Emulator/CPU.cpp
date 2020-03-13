@@ -233,7 +233,7 @@ IMPL_INSTR(11, set_DE(read_d16())                                              ,
 IMPL_INSTR(21, set_HL(read_d16())                                              , 12)        // LD HL, d16
 IMPL_INSTR(31, SP = read_d16()                                                 , 12)        // LD SP, d16
 IMPL_INSTR(F9, SP = get_HL()                                                   , 8)         // LD SP, HL
-IMPL_INSTR(F8, ldhl_spd8_instr()                                               , 12)        // LD HL, SP + d8
+IMPL_INSTR(F8, ld_hl_spd8_instr()                                              , 12)        // LD HL, SP + d8
 IMPL_INSTR(08, mem->write_two_bytes(read_d16(), SP)                            , 20)        // LD (a16), SP
 
 IMPL_INSTR(C5, push_instr(get_BC())                                            , 16)        // PUSH BC
@@ -256,6 +256,21 @@ IMPL_INSTR(0B, set_BC(get_BC() - 1)                                            ,
 IMPL_INSTR(1B, set_DE(get_DE() - 1)                                            , 8)         // DEC DE
 IMPL_INSTR(2B, dec_HL()                                                        , 8)         // DEC HL
 IMPL_INSTR(3B, SP--                                                            , 8)         // DEC SP
+
+IMPL_INSTR(09, set_HL(add16_instr(get_HL(), get_BC()))                         , 8)         // ADD HL, BC
+IMPL_INSTR(19, set_HL(add16_instr(get_HL(), get_DE()))                         , 8)         // ADD HL, DE
+IMPL_INSTR(29, set_HL(add16_instr(get_HL(), get_HL()))                         , 8)         // ADD HL, HL
+IMPL_INSTR(39, set_HL(add16_instr(get_HL(), SP))                               , 8)         // ADD HL, SP
+IMPL_INSTR(E8, add_spd8_instr()                                                , 16)        // ADD SP, d8
+
+
+// MISCELLANIOUS
+IMPL_INSTR(00,                                                                 , 4)         // NOP
+
+
+// JUMP
+IMPL_INSTR(C3, PC = read_d16()                                                 , 16)        // JP a16
+
 
 void CPU::execute_instruction()
 {
@@ -514,7 +529,7 @@ uint16_t CPU::pop_instr()
 	return (tmp << 8) + mem->read_byte(++SP);
 }
 
-void CPU::ldhl_spd8_instr()
+void CPU::ld_hl_spd8_instr()
 {
 	int8_t d8 = read_d8();
 	uint8_t ud8 = d8;
@@ -528,8 +543,44 @@ void CPU::ldhl_spd8_instr()
 		set_c_bit();
 	else
 		reset_c_bit();
+
 	reset_z_bit();
 	reset_n_bit();
 
 	set_HL(SP + d8);
+}
+
+void CPU::add_spd8_instr()
+{
+	int8_t d8 = read_d8();
+	uint8_t ud8 = d8;
+
+	if ((ud8 & 0x0F) + (SP & 0x0F) > 0x0F)
+		set_h_bit();
+	else
+		reset_h_bit();
+
+	if ((SP & 0xFF) + ud8 > 0xFF)
+		set_c_bit();
+	else
+		reset_c_bit();
+
+	reset_z_bit();
+	reset_n_bit();
+
+	SP += d8;
+}
+
+uint16_t CPU::add16_instr(uint16_t a, uint16_t b)
+{
+	uint8_t z_bit = get_z_bit();
+	uint16_t low_byte = add_instr(a & 0xFF, b & 0xFF, false);
+	uint16_t high_byte = add_instr((a & 0xFF00) >> 8, (b & 0xFF00) >> 8, true);
+
+	if (z_bit)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return (high_byte << 8) + low_byte;
 }
