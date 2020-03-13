@@ -41,7 +41,8 @@ private:
 	DECLARE_INSTRUCTIONS_TABLE
 
 	uint8_t   read_next_instr();
-	uint8_t   read_d8(); 
+	uint8_t   read_ud8();
+	int8_t    read_d8();
 	uint16_t  read_d16();
 
 	// Setting / resetting   flags
@@ -121,15 +122,20 @@ inline uint8_t CPU::read_next_instr()
 	return mem->read_byte(PC++);
 }
 
-inline uint8_t CPU::read_d8()
+inline uint8_t CPU::read_ud8()
 { 
+	return read_next_instr();
+}
+
+inline int8_t CPU::read_d8()
+{
 	return read_next_instr();
 }
 
 inline uint16_t CPU::read_d16()
 {
-	uint16_t d16 = read_d8();
-	return d16 + (read_d8() << 8);
+	uint16_t d16 = read_ud8();
+	return d16 + (read_ud8() << 8);
 }
 
 inline uint8_t CPU::get_z_bit()
