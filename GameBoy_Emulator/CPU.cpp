@@ -192,77 +192,77 @@ IMPL_INSTR(60, regs[H_REG] = regs[B_REG]   ,  4)        // LD H, B
 IMPL_INSTR(61, regs[H_REG] = regs[C_REG]   ,  4)        // LD H, C
 IMPL_INSTR(62, regs[H_REG] = regs[D_REG]   ,  4)        // LD H, D
 IMPL_INSTR(63, regs[H_REG] = regs[E_REG]   ,  4)        // LD H, E
-IMPL_INSTR(64, regs[H_REG] = regs[H_REG]   ,  4)        // LD H, H
-IMPL_INSTR(65, regs[H_REG] = regs[L_REG]   ,  4)        // LD H, L
-IMPL_INSTR(66, regs[H_REG] = read_from_HL(),  8)        // LD H, (HL)
-										
-IMPL_INSTR(6F, regs[L_REG] = regs[A_REG]   ,  4)        // LD L, A
-IMPL_INSTR(68, regs[L_REG] = regs[B_REG]   ,  4)        // LD L, B
-IMPL_INSTR(69, regs[L_REG] = regs[C_REG]   ,  4)        // LD L, C
-IMPL_INSTR(6A, regs[L_REG] = regs[D_REG]   ,  4)        // LD L, D
-IMPL_INSTR(6B, regs[L_REG] = regs[E_REG]   ,  4)        // LD L, E
-IMPL_INSTR(6C, regs[L_REG] = regs[H_REG]   ,  4)        // LD L, H
-IMPL_INSTR(6D, regs[L_REG] = regs[L_REG]   ,  4)        // LD L, L
-IMPL_INSTR(6E, regs[L_REG] = read_from_HL(),  8)        // LD L, (HL)
-										
-IMPL_INSTR(77, write_to_HL(regs[A_REG])    ,  8)        // LD (HL), A
-IMPL_INSTR(70, write_to_HL(regs[B_REG])    ,  8)        // LD (HL), B
-IMPL_INSTR(71, write_to_HL(regs[C_REG])    ,  8)        // LD (HL), C
-IMPL_INSTR(72, write_to_HL(regs[D_REG])    ,  8)        // LD (HL), D
-IMPL_INSTR(73, write_to_HL(regs[E_REG])    ,  8)        // LD (HL), E
-IMPL_INSTR(74, write_to_HL(regs[H_REG])    ,  8)        // LD (HL), H
-IMPL_INSTR(75, write_to_HL(regs[L_REG])    ,  8)        // LD (HL), L
-																		
-IMPL_INSTR(02, write_to_BC(regs[A_REG])                          ,  8)        // LD (BC), A
-IMPL_INSTR(12, write_to_DE(regs[A_REG])                          ,  8)        // LD (DE), A
-IMPL_INSTR(EA, mem->write_byte(read_d16(), regs[A_REG])          , 16)        // LD (a16), A
+IMPL_INSTR(64, regs[H_REG] = regs[H_REG], 4)        // LD H, H
+IMPL_INSTR(65, regs[H_REG] = regs[L_REG], 4)        // LD H, L
+IMPL_INSTR(66, regs[H_REG] = read_from_HL(), 8)        // LD H, (HL)
 
-IMPL_INSTR(F2, regs[A_REG] = mem->read_byte(0xFF00 + regs[C_REG]),  8)        // LD A, (FF00 + C)
-IMPL_INSTR(F0, regs[A_REG] = mem->read_byte(0xFF00 + read_ud8()) , 12)        // LD A, (FF00 + a8)
-IMPL_INSTR(E2, mem->write_byte(0xFF00 + regs[C_REG], regs[A_REG]),  8)        // LD (FF00 + C), A 
+IMPL_INSTR(6F, regs[L_REG] = regs[A_REG], 4)        // LD L, A
+IMPL_INSTR(68, regs[L_REG] = regs[B_REG], 4)        // LD L, B
+IMPL_INSTR(69, regs[L_REG] = regs[C_REG], 4)        // LD L, C
+IMPL_INSTR(6A, regs[L_REG] = regs[D_REG], 4)        // LD L, D
+IMPL_INSTR(6B, regs[L_REG] = regs[E_REG], 4)        // LD L, E
+IMPL_INSTR(6C, regs[L_REG] = regs[H_REG], 4)        // LD L, H
+IMPL_INSTR(6D, regs[L_REG] = regs[L_REG], 4)        // LD L, L
+IMPL_INSTR(6E, regs[L_REG] = read_from_HL(), 8)        // LD L, (HL)
 
-IMPL_INSTR(2A, regs[A_REG] = read_from_HL(); inc_HL()            ,  8)        // LD A, (HL+)
-IMPL_INSTR(3A, regs[A_REG] = read_from_HL(); dec_HL()            ,  8)        // LD A, (HL-)
-IMPL_INSTR(22, write_to_HL(regs[A_REG]); inc_HL()                ,  8)        // LD (HL+), A
-IMPL_INSTR(32, write_to_HL(regs[A_REG]); dec_HL()                ,  8)        // LD (HL-), A
+IMPL_INSTR(77, write_to_HL(regs[A_REG]), 8)        // LD (HL), A
+IMPL_INSTR(70, write_to_HL(regs[B_REG]), 8)        // LD (HL), B
+IMPL_INSTR(71, write_to_HL(regs[C_REG]), 8)        // LD (HL), C
+IMPL_INSTR(72, write_to_HL(regs[D_REG]), 8)        // LD (HL), D
+IMPL_INSTR(73, write_to_HL(regs[E_REG]), 8)        // LD (HL), E
+IMPL_INSTR(74, write_to_HL(regs[H_REG]), 8)        // LD (HL), H
+IMPL_INSTR(75, write_to_HL(regs[L_REG]), 8)        // LD (HL), L
+
+IMPL_INSTR(02, write_to_BC(regs[A_REG]), 8)        // LD (BC), A
+IMPL_INSTR(12, write_to_DE(regs[A_REG]), 8)        // LD (DE), A
+IMPL_INSTR(EA, mem->write_byte(read_d16(), regs[A_REG]), 16)        // LD (a16), A
+
+IMPL_INSTR(F2, regs[A_REG] = mem->read_byte(0xFF00 + regs[C_REG]), 8)        // LD A, (FF00 + C)
+IMPL_INSTR(F0, regs[A_REG] = mem->read_byte(0xFF00 + read_ud8()), 12)        // LD A, (FF00 + a8)
+IMPL_INSTR(E2, mem->write_byte(0xFF00 + regs[C_REG], regs[A_REG]), 8)        // LD (FF00 + C), A 
+
+IMPL_INSTR(2A, regs[A_REG] = read_from_HL(); inc_HL(), 8)        // LD A, (HL+)
+IMPL_INSTR(3A, regs[A_REG] = read_from_HL(); dec_HL(), 8)        // LD A, (HL-)
+IMPL_INSTR(22, write_to_HL(regs[A_REG]); inc_HL(), 8)        // LD (HL+), A
+IMPL_INSTR(32, write_to_HL(regs[A_REG]); dec_HL(), 8)        // LD (HL-), A
 
 
 // 16-BIT LD INSTRUCTIONS
 IMPL_INSTR(08, mem->write_two_bytes(read_d16(), SP), 20)        // LD (a16), SP
 
-IMPL_INSTR(01, set_BC(read_d16())  , 12)        // LD BC, d16
-IMPL_INSTR(11, set_DE(read_d16())  , 12)        // LD DE, d16
-IMPL_INSTR(21, set_HL(read_d16())  , 12)        // LD HL, d16
-IMPL_INSTR(31, SP = read_d16()     , 12)        // LD SP, d16
-IMPL_INSTR(F9, SP = get_HL()       ,  8)        // LD SP, HL
-IMPL_INSTR(F8, ld_hl_spd8_instr()  , 12)        // LD HL, SP + d8
+IMPL_INSTR(01, set_BC(read_d16()), 12)        // LD BC, d16
+IMPL_INSTR(11, set_DE(read_d16()), 12)        // LD DE, d16
+IMPL_INSTR(21, set_HL(read_d16()), 12)        // LD HL, d16
+IMPL_INSTR(31, SP = read_d16(), 12)        // LD SP, d16
+IMPL_INSTR(F9, SP = get_HL(), 8)        // LD SP, HL
+IMPL_INSTR(F8, ld_hl_spd8_instr(), 12)        // LD HL, SP + d8
 
 IMPL_INSTR(C5, push_instr(get_BC()), 16)        // PUSH BC
 IMPL_INSTR(D5, push_instr(get_DE()), 16)        // PUSH DE
 IMPL_INSTR(E5, push_instr(get_HL()), 16)        // PUSH HL
 IMPL_INSTR(F5, push_instr(get_AF()), 16)        // PUSH AF
 
-IMPL_INSTR(C1, set_BC(pop_instr()) , 12)        // POP BC
-IMPL_INSTR(D1, set_DE(pop_instr()) , 12)        // POP DE
-IMPL_INSTR(E1, set_HL(pop_instr()) , 12)        // POP HL
-IMPL_INSTR(F1, set_AF(pop_instr()) , 12)        // POP AF
+IMPL_INSTR(C1, set_BC(pop_instr()), 12)        // POP BC
+IMPL_INSTR(D1, set_DE(pop_instr()), 12)        // POP DE
+IMPL_INSTR(E1, set_HL(pop_instr()), 12)        // POP HL
+IMPL_INSTR(F1, set_AF(pop_instr()), 12)        // POP AF
 
 // 16-BIT ALU
-IMPL_INSTR(03, set_BC(get_BC() + 1),  8)        // INC BC
-IMPL_INSTR(13, set_DE(get_DE() + 1),  8)        // INC DE
-IMPL_INSTR(23, inc_HL()            ,  8)        // INC HL
-IMPL_INSTR(33, SP++                ,  8)        // INC SP
-								
-IMPL_INSTR(0B, set_BC(get_BC() - 1),  8)        // DEC BC
-IMPL_INSTR(1B, set_DE(get_DE() - 1),  8)        // DEC DE
-IMPL_INSTR(2B, dec_HL()            ,  8)        // DEC HL
-IMPL_INSTR(3B, SP--                ,  8)        // DEC SP
-													
-IMPL_INSTR(09, set_HL(add16_instr(get_HL(), get_BC())),  8)        // ADD HL, BC
-IMPL_INSTR(19, set_HL(add16_instr(get_HL(), get_DE())),  8)        // ADD HL, DE
-IMPL_INSTR(29, set_HL(add16_instr(get_HL(), get_HL())),  8)        // ADD HL, HL
-IMPL_INSTR(39, set_HL(add16_instr(get_HL(), SP))      ,  8)        // ADD HL, SP
-IMPL_INSTR(E8, add_spd8_instr()                       , 16)        // ADD SP, d8
+IMPL_INSTR(03, set_BC(get_BC() + 1), 8)        // INC BC
+IMPL_INSTR(13, set_DE(get_DE() + 1), 8)        // INC DE
+IMPL_INSTR(23, inc_HL(), 8)        // INC HL
+IMPL_INSTR(33, SP++, 8)        // INC SP
+
+IMPL_INSTR(0B, set_BC(get_BC() - 1), 8)        // DEC BC
+IMPL_INSTR(1B, set_DE(get_DE() - 1), 8)        // DEC DE
+IMPL_INSTR(2B, dec_HL(), 8)        // DEC HL
+IMPL_INSTR(3B, SP--, 8)        // DEC SP
+
+IMPL_INSTR(09, set_HL(add16_instr(get_HL(), get_BC())), 8)        // ADD HL, BC
+IMPL_INSTR(19, set_HL(add16_instr(get_HL(), get_DE())), 8)        // ADD HL, DE
+IMPL_INSTR(29, set_HL(add16_instr(get_HL(), get_HL())), 8)        // ADD HL, HL
+IMPL_INSTR(39, set_HL(add16_instr(get_HL(), SP)), 8)        // ADD HL, SP
+IMPL_INSTR(E8, add_spd8_instr(), 16)        // ADD SP, d8
 
 
 // MISCELLANIOUS
@@ -270,28 +270,42 @@ IMPL_INSTR(00, , 4)        // NOP
 
 
 // JUMP / CALL
-IMPL_INSTR(C3, PC = read_d16()    , 16)        // JP a16
-IMPL_INSTR(E9, PC = read_from_HL(),  4)        // JP (HL)
+IMPL_INSTR(C3, PC = read_d16(), 16)        // JP a16
+IMPL_INSTR(E9, PC = read_from_HL(), 4)        // JP (HL)
 IMPL_INSTR(18, PC += 2 + read_d8(), 12)        // JP r8
 
 IMPL_INSTR(C2, if (!get_z_bit()) PC = read_d16(), (!get_z_bit()) ? 16 : 12)        // JP NZ, a16
-IMPL_INSTR(CA, if (get_z_bit())  PC = read_d16(),  (get_z_bit()) ? 16 : 12)        // JP Z, a16
+IMPL_INSTR(CA, if (get_z_bit())  PC = read_d16(), (get_z_bit()) ? 16 : 12)        // JP Z, a16
 IMPL_INSTR(D2, if (!get_c_bit()) PC = read_d16(), (!get_c_bit()) ? 16 : 12)        // JP NC, a16
-IMPL_INSTR(DA, if (get_c_bit())  PC = read_d16(),  (get_c_bit()) ? 16 : 12)        // JP C, a16 
+IMPL_INSTR(DA, if (get_c_bit())  PC = read_d16(), (get_c_bit()) ? 16 : 12)        // JP C, a16 
 
 IMPL_INSTR(20, if (!get_z_bit()) PC += 2 + read_d8(), (!get_z_bit()) ? 12 : 8)        // JR NZ, d8
-IMPL_INSTR(28, if (get_z_bit())  PC += 2 + read_d8(),  (get_z_bit()) ? 12 : 8)        // JR Z, d8
+IMPL_INSTR(28, if (get_z_bit())  PC += 2 + read_d8(), (get_z_bit()) ? 12 : 8)        // JR Z, d8
 IMPL_INSTR(30, if (!get_c_bit()) PC += 2 + read_d8(), (!get_c_bit()) ? 12 : 8)        // JR NC, d8
-IMPL_INSTR(38, if (get_c_bit())  PC += 2 + read_d8(),  (get_c_bit()) ? 12 : 8)        // JR C, d8
+IMPL_INSTR(38, if (get_c_bit())  PC += 2 + read_d8(), (get_c_bit()) ? 12 : 8)        // JR C, d8
 IMPL_INSTR(E0, mem->write_byte(0xFF00 + read_ud8(), regs[A_REG]), 12)                 // LD (FF00 + a8), A 
 
-IMPL_INSTR(CD, push_instr(PC); PC = read_d16(), 24)        // CALL a16
-IMPL_INSTR(C4, if (!get_z_bit()) { push_instr(PC); PC = read_d16(); }, (!get_z_bit()) ? 24 : 12)        // CALL NZ, a16
-IMPL_INSTR(CC, if (get_z_bit())  { push_instr(PC); PC = read_d16(); },  (get_z_bit()) ? 24 : 12)        // CALL Z, a16
-IMPL_INSTR(D4, if (!get_c_bit()) { push_instr(PC); PC = read_d16(); }, (!get_c_bit()) ? 24 : 12)        // CALL NC, a16
-IMPL_INSTR(DC, if (get_c_bit())  { push_instr(PC); PC = read_d16(); },  (get_c_bit()) ? 24 : 12)        // CALL C, a16
+IMPL_INSTR(CD, push_instr(PC + 3); PC = read_d16(), 24)        // CALL a16
+IMPL_INSTR(C4, if (!get_z_bit()) { push_instr(PC + 3); PC = read_d16(); }, (!get_z_bit()) ? 24 : 12)        // CALL NZ, a16
+IMPL_INSTR(CC, if (get_z_bit()) { push_instr(PC + 3); PC = read_d16(); }, (get_z_bit()) ? 24 : 12)        // CALL Z, a16
+IMPL_INSTR(D4, if (!get_c_bit()) { push_instr(PC + 3); PC = read_d16(); }, (!get_c_bit()) ? 24 : 12)        // CALL NC, a16
+IMPL_INSTR(DC, if (get_c_bit()) { push_instr(PC + 3); PC = read_d16(); }, (get_c_bit()) ? 24 : 12)        // CALL C, a16
 
+IMPL_INSTR(C7, push_instr(PC + 1); PC = 0x00, 16)    // RST 00H
+IMPL_INSTR(CF, push_instr(PC + 1); PC = 0x08, 16)    // RST 08H
+IMPL_INSTR(D7, push_instr(PC + 1); PC = 0x10, 16)    // RST 10H
+IMPL_INSTR(DF, push_instr(PC + 1); PC = 0x18, 16)    // RST 18H
+IMPL_INSTR(E7, push_instr(PC + 1); PC = 0x20, 16)    // RST 20H
+IMPL_INSTR(EF, push_instr(PC + 1); PC = 0x28, 16)    // RST 28H
+IMPL_INSTR(F7, push_instr(PC + 1); PC = 0x30, 16)    // RST 30H
+IMPL_INSTR(FF, push_instr(PC + 1); PC = 0x38, 16)    // RST 38H
 
+IMPL_INSTR(C9, PC = pop_instr(), 16)    // RET
+IMPL_INSTR(C0, if (!get_z_bit()) PC = pop_instr(), (!get_z_bit()) ? 20 : 8)    // RET NZ
+IMPL_INSTR(C8, if (get_z_bit()) PC = pop_instr(), (get_z_bit()) ? 20 : 8)    // RET Z
+IMPL_INSTR(D0, if (!get_c_bit()) PC = pop_instr(), (!get_c_bit()) ? 20 : 8)    // RET NC
+IMPL_INSTR(D8, if (get_c_bit()) PC = pop_instr(), (get_c_bit()) ? 20 : 8)    // RET C
+	
 void CPU::execute_instruction()
 {
 	uint8_t opcode = read_next_instr();
