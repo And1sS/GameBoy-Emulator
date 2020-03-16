@@ -71,7 +71,7 @@
 			void instr_F0(); void instr_F1(); void instr_F2(); void instr_F3();          \
 			void instr_F4(); void instr_F5(); void instr_F6(); void instr_F7();          \
 			void instr_F8(); void instr_F9(); void instr_FA(); void instr_FB();          \
-			void instr_FC(); void instr_FD(); void instr_FE(); void instr_FF();          
+			void instr_FC(); void instr_FD(); void instr_FE(); void instr_FF();
 
 #define DECLARE_INSTRUCTIONS_TABLE                                                    \
 		type_instr instr_table[256] =                                                 \

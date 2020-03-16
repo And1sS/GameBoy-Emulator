@@ -305,11 +305,71 @@ IMPL_INSTR(C0, if (!get_z_bit()) PC = pop_instr(), (!get_z_bit()) ? 20 : 8)    /
 IMPL_INSTR(C8, if (get_z_bit()) PC = pop_instr(), (get_z_bit()) ? 20 : 8)    // RET Z
 IMPL_INSTR(D0, if (!get_c_bit()) PC = pop_instr(), (!get_c_bit()) ? 20 : 8)    // RET NC
 IMPL_INSTR(D8, if (get_c_bit()) PC = pop_instr(), (get_c_bit()) ? 20 : 8)    // RET C
+
+
+// CB INSTRUCTIONS
+IMPL_INSTR(CB, execute_CB_instruction(), 0)
 	
 void CPU::execute_instruction()
 {
 	uint8_t opcode = read_next_instr();
 	(this->*instr_table[opcode])();
+}
+
+void CPU::execute_CB_instruction()
+{
+	typedef uint8_t(CPU::* type_instr_CB) (uint8_t);
+	static type_instr_CB instrs[8] =
+	{
+		& CPU::rlc_instr, & CPU::rrc_instr, & CPU::rl_instr, & CPU::rr_instr,
+		& CPU::sla_instr, & CPU::sra_instr, & CPU::swap_instr, & CPU::srl_instr
+	};
+
+	uint8_t opcode = read_next_instr();
+	clock_cycle += 8;
+
+	uint8_t reg = opcode % 8;
+
+	uint8_t operand = regs[reg];
+	if (reg == 6)
+	{
+		operand = read_from_HL();
+		clock_cycle += 8;
+	}
+	else if (reg == 7)
+		operand = regs[A_REG];
+
+	
+
+	uint8_t result = 0;
+	if (opcode < 0x40)   // SHIFT AND SWAP ISNTRUCTIONS
+	{
+		uint8_t instr = opcode / 8;
+		result = (this->*instrs[instr])(operand);
+	}
+	else if (opcode < 0x80)   // BIT INSTRUCTIONS
+	{
+		uint8_t bit = (opcode - 0x40) / 8;
+		bit_instr(operand, bit);
+		return;
+	}
+	else if (opcode < 0xC0)   // RES INSTRUCTIONS
+	{
+		uint8_t bit = (opcode - 0x80) / 8;
+		result = res_instr(operand, bit);
+	}
+	else   // SET INSTRUCTIONS
+	{
+		uint8_t bit = (opcode - 0xC0) / 8;
+		result = set_instr(operand, bit);
+	}
+
+	if (reg < 6)
+		regs[reg] = result;
+	else if (reg == 6)
+		write_to_HL(result);
+	else if (reg == 7)
+		regs[A_REG] = result;
 }
 
 uint8_t CPU::add_instr(uint8_t a, uint8_t b, bool use_carry)
@@ -617,4 +677,196 @@ uint16_t CPU::add16_instr(uint16_t a, uint16_t b)
 		reset_z_bit();
 
 	return (high_byte << 8) + low_byte;
+}
+
+uint8_t CPU::set_instr(uint8_t a, uint8_t bit)
+{
+	return a | (1 << bit);
+}
+
+uint8_t CPU::res_instr(uint8_t a, uint8_t bit)
+{
+	return a & ~(1 << bit);
+}
+
+void CPU::bit_instr(uint8_t a, uint8_t bit)
+{
+	reset_n_bit();
+	set_h_bit();
+
+	if (a & (1 << bit))
+		reset_z_bit();
+	else
+		set_z_bit();
+}
+
+uint8_t CPU::rlc_instr(uint8_t a)
+{
+	uint8_t bit_7 = (a & (1 << 7)) >> 7;
+	uint8_t res = a << 1;
+	res |= get_c_bit();
+
+	if (bit_7)
+		set_c_bit();
+	else
+		reset_c_bit();
+	
+	reset_n_bit();
+	reset_h_bit();
+
+	if (res == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return res;
+}
+
+uint8_t CPU::rrc_instr(uint8_t a)
+{
+	uint8_t bit_0 = a & 1;
+	uint8_t res = a >> 1;
+	res |= get_c_bit() << 7;
+
+	if (bit_0)
+		set_c_bit();
+	else
+		reset_c_bit();
+
+	reset_n_bit();
+	reset_h_bit();
+
+	if (res == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return res;
+}
+
+uint8_t CPU::rl_instr(uint8_t a)
+{
+	uint8_t bit_7 = (a & (1 << 7)) >> 7;
+	uint8_t res = a << 1;
+	res |= bit_7;
+
+	if (bit_7)
+		set_c_bit();
+	else
+		reset_c_bit();
+
+	reset_n_bit();
+	reset_h_bit();
+
+	if (res == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return res;
+}
+
+uint8_t CPU::rr_instr(uint8_t a)
+{
+	uint8_t bit_0 = a & 1;
+	uint8_t res = a >> 1;
+	res |= bit_0 << 7;
+
+	if (bit_0)
+		set_c_bit();
+	else
+		reset_c_bit();
+
+	reset_n_bit();
+	reset_h_bit();
+
+	if (res == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return res;
+}
+
+uint8_t CPU::sla_instr(uint8_t a)
+{
+	uint8_t bit_7 = (a & (1 << 7)) >> 7;
+	uint8_t res = a << 1;
+
+	if (bit_7)
+		set_c_bit();
+	else
+		reset_c_bit();
+
+	reset_n_bit();
+	reset_h_bit();
+
+	if (res == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return res;
+}
+
+uint8_t CPU::sra_instr(uint8_t a)
+{
+	uint8_t bit_0 = a & 1;
+	uint8_t bit_7 = a & (1 << 7);
+	uint8_t res = a >> 1;
+	res |= bit_7;
+
+	if (bit_0)
+		set_c_bit();
+	else
+		reset_c_bit();
+
+	reset_n_bit();
+	reset_h_bit();
+
+	if (res == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return res;
+}
+
+uint8_t CPU::srl_instr(uint8_t a)
+{
+	uint8_t bit_0 = a & 1;
+	uint8_t res = a >> 1;
+
+	if (bit_0)
+		set_c_bit();
+	else
+		reset_c_bit();
+
+	reset_n_bit();
+	reset_h_bit();
+
+	if (res == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return res;
+}
+
+uint8_t CPU::swap_instr(uint8_t a)
+{
+	uint8_t upper_nibble = (a & 0xF0) >> 4;
+	uint8_t res = a << 4;
+	res += upper_nibble;
+
+	reset_h_bit();
+	reset_n_bit();
+	reset_c_bit();
+
+	if (res == 0)
+		set_z_bit();
+	else
+		reset_z_bit();
+
+	return res;
 }

@@ -90,8 +90,8 @@ private:
 	uint16_t  get_AF();
 	void      set_AF(uint16_t a);
 
-	
-	// ALU Instructions
+	void      execute_CB_instruction();
+
 	uint8_t   add_instr(uint8_t a, uint8_t b, bool use_carry);
 	uint8_t   sub_instr(uint8_t a, uint8_t b, bool use_carry);
 	uint8_t   and_instr(uint8_t a, uint8_t b); 
@@ -99,6 +99,16 @@ private:
 	uint8_t   xor_instr(uint8_t a, uint8_t b);
 	uint8_t   inc_instr(uint8_t a);
 	uint8_t   dec_instr(uint8_t a);
+	uint8_t   set_instr(uint8_t a, uint8_t bit);
+	uint8_t   res_instr(uint8_t a, uint8_t bit);
+	uint8_t   rlc_instr(uint8_t a);
+	uint8_t   rrc_instr(uint8_t a);
+	uint8_t   rl_instr(uint8_t a);
+	uint8_t   rr_instr(uint8_t a);
+	uint8_t   sla_instr(uint8_t a);
+	uint8_t   sra_instr(uint8_t a);
+	uint8_t   srl_instr(uint8_t a);
+	uint8_t   swap_instr(uint8_t a);
 	uint16_t  pop_instr();
 	uint16_t  add16_instr(uint16_t a, uint16_t b);
 
@@ -110,6 +120,7 @@ private:
 	void      ccf_instr();
 	void      ld_hl_spd8_instr();
 	void      add_spd8_instr();
+	void      bit_instr(uint8_t a, uint8_t bit);
 	
 public:
 	CPU(Memory* mem) : mem(mem) {}

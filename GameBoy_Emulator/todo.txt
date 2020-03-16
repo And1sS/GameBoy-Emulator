@@ -1,0 +1,3 @@
+change Memory to interface
+create Display as interface
+create GUI debugger
