@@ -1,25 +1,26 @@
 #pragma once
 
 #include <cstdint>
+#include <stdexcept>
 
 #include "instructions_definitions.h"
 #include "Memory.h"
 
 // Flags definitions
-#define Z_BIT 7
-#define N_BIT 6
-#define H_BIT 5
-#define C_BIT 4
+constexpr uint8_t Z_BIT = 7;
+constexpr uint8_t N_BIT = 6;
+constexpr uint8_t H_BIT = 5;
+constexpr uint8_t C_BIT = 4;
 
 // Registers definitions
-#define B_REG 0
-#define C_REG 1
-#define D_REG 2
-#define E_REG 3
-#define H_REG 4
-#define L_REG 5
-#define A_REG 6
-#define F_REG 7
+constexpr uint8_t B_REG = 0;
+constexpr uint8_t C_REG = 1;
+constexpr uint8_t D_REG = 2;
+constexpr uint8_t E_REG = 3;
+constexpr uint8_t H_REG = 4;
+constexpr uint8_t L_REG = 5;
+constexpr uint8_t A_REG = 6;
+constexpr uint8_t F_REG = 7;
 
 // TODO: IMPLEMENT CONSTRUCTOR
 class CPU;
@@ -28,17 +29,23 @@ typedef void (CPU::* type_instr) (void);
 class CPU
 {
 private:
+	bool IME = false;           // Interrupts enabled / disabled
+
 	uint8_t   regs[8];         // BC, DE, HL, AF Registers
 	uint8_t&  F = regs[F_REG]; // Flag Register
 	uint16_t  SP;              // Stack Pointer
 	uint16_t  PC;              // Program Counter
 
 	uint64_t  clock_cycle = 0;
+	uint8_t   phase = 0;
+	uint8_t   max_phase;
 
 	Memory*   mem;
 
 	DECLARE_INSTRUCTIONS
 	DECLARE_INSTRUCTIONS_TABLE
+
+	bool      handle_interrupts();
 
 	uint8_t   read_next_instr();
 	uint8_t   read_ud8();
@@ -112,6 +119,7 @@ private:
 	uint16_t  pop_instr();
 	uint16_t  add16_instr(uint16_t a, uint16_t b);
 
+	void      call_interrupt_instr(uint16_t addr);
 	void      push_instr(uint16_t a);
 	void      cp_instr(uint8_t a, uint8_t b);
 	void      daa_instr();
@@ -125,7 +133,7 @@ private:
 public:
 	CPU(Memory* mem) : mem(mem) {}
 
-	void      execute_instruction();									 
+	void      execute_one_cycle();									 
 };
 
 inline uint8_t CPU::read_next_instr()

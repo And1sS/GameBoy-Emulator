@@ -1,3 +1,5 @@
-change Memory to interface
-create Display as interface
 create GUI debugger
+rewrite cpu to use phases
+add ei di bug
+block memory r/w when ppu is in certain modes
+generate interrupts from ppu (VBLANK)

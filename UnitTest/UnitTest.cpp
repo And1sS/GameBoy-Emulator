@@ -1,6 +1,8 @@
 #include "CppUnitTest.h"
 #include "../GameBoy_Emulator/CPU.h"
 #include "../GameBoy_Emulator/CPU.cpp"
+#include "../GameBoy_Emulator/Memory.cpp"
+#include "../GameBoy_Emulator/PPU.cpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -22,14 +24,14 @@ namespace UnitTest
 			Memory* mem = new Memory;
 			mem->write_bytes(0,
 				{
-						LDA, 15, LDB, 6, ADD_A_B, STA, 0x00, 0x01
+						LDA, 15, LDB, 6, ADD_A_B, STA, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0
 				});
 
 			CPU cpu(mem);
-			for (size_t i = 0; i < 4; i++)
-				cpu.execute_instruction();
+			for (size_t i = 0; i < 15; i++)
+				cpu.execute_one_cycle();
 
-			Assert::AreEqual(mem->read_byte(0x0100), (uint8_t)21);
+			Assert::AreEqual((uint8_t)21, mem->read_byte(0x0100));
 		}
 		
 		TEST_METHOD(daa_instruction)
@@ -42,22 +44,22 @@ namespace UnitTest
 				{
 					mem->write_bytes(0,
 						{
-								LDA, to_bcd(i), LDB, to_bcd(j), ADD_A_B, DAA, STA, 0x00, 0x01
+								LDA, to_bcd(i), LDB, to_bcd(j), ADD_A_B, DAA, STA, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 						});
 					CPU cpu(mem);
-					for (size_t i = 0; i < 5; i++)
-						cpu.execute_instruction();
+					for (size_t i = 0; i < 20; i++)
+						cpu.execute_one_cycle();
 
 					Assert::AreEqual(mem->read_byte(0x0100), to_bcd((i + j) % 100));
 
 
 					mem->write_bytes(0,
 						{
-								LDA, to_bcd(i), LDB, to_bcd(j), SUB_A_B, DAA, STA, 0x00, 0x01
+								LDA, to_bcd(i), LDB, to_bcd(j), SUB_A_B, DAA, STA, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 						});
 					CPU cpu2(mem);
-					for (size_t i = 0; i < 5; i++)
-						cpu2.execute_instruction();
+					for (size_t i = 0; i < 20; i++)
+						cpu2.execute_one_cycle();
 
 					Assert::AreEqual(mem->read_byte(0x0100), to_bcd((100 + i - j) % 100));
 				}

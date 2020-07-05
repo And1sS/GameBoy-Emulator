@@ -7,7 +7,6 @@
 		clock_cycle += CYCLES;					  \
 	}
 
-
 // ADD INSTRUCTIONS
 IMPL_INSTR(87, regs[A_REG] = add_instr(regs[A_REG], regs[A_REG], false)   ,  4)		// ADD A, A
 IMPL_INSTR(80, regs[A_REG] = add_instr(regs[A_REG], regs[B_REG], false)   ,  4)		// ADD A, B
@@ -169,29 +168,29 @@ IMPL_INSTR(4C, regs[C_REG] = regs[H_REG]   ,  4)        // LD C, H
 IMPL_INSTR(4D, regs[C_REG] = regs[L_REG]   ,  4)        // LD C, L
 IMPL_INSTR(4E, regs[C_REG] = read_from_HL(),  8)        // LD C, (HL)
 										
-IMPL_INSTR(57, regs[D_REG] = regs[A_REG]   ,  4)        // LD D, A
-IMPL_INSTR(50, regs[D_REG] = regs[B_REG]   ,  4)        // LD D, B
-IMPL_INSTR(51, regs[D_REG] = regs[C_REG]   ,  4)        // LD D, C
-IMPL_INSTR(52, regs[D_REG] = regs[D_REG]   ,  4)        // LD D, D
-IMPL_INSTR(53, regs[D_REG] = regs[E_REG]   ,  4)        // LD D, E
-IMPL_INSTR(54, regs[D_REG] = regs[H_REG]   ,  4)        // LD D, H
-IMPL_INSTR(55, regs[D_REG] = regs[L_REG]   ,  4)        // LD D, L
-IMPL_INSTR(56, regs[D_REG] = read_from_HL(),  8)        // LD D, (HL)
-										
-IMPL_INSTR(5F, regs[E_REG] = regs[A_REG]   ,  4)        // LD E, A
-IMPL_INSTR(58, regs[E_REG] = regs[B_REG]   ,  4)        // LD E, B
-IMPL_INSTR(59, regs[E_REG] = regs[C_REG]   ,  4)        // LD E, C
-IMPL_INSTR(5A, regs[E_REG] = regs[D_REG]   ,  4)        // LD E, D
-IMPL_INSTR(5B, regs[E_REG] = regs[E_REG]   ,  4)        // LD E, E
-IMPL_INSTR(5C, regs[E_REG] = regs[H_REG]   ,  4)        // LD E, H
-IMPL_INSTR(5D, regs[E_REG] = regs[L_REG]   ,  4)        // LD E, L
-IMPL_INSTR(5E, regs[E_REG] = read_from_HL(),  8)        // LD E, (HL)
-										
-IMPL_INSTR(67, regs[H_REG] = regs[A_REG]   ,  4)        // LD H, A
-IMPL_INSTR(60, regs[H_REG] = regs[B_REG]   ,  4)        // LD H, B
-IMPL_INSTR(61, regs[H_REG] = regs[C_REG]   ,  4)        // LD H, C
-IMPL_INSTR(62, regs[H_REG] = regs[D_REG]   ,  4)        // LD H, D
-IMPL_INSTR(63, regs[H_REG] = regs[E_REG]   ,  4)        // LD H, E
+IMPL_INSTR(57, regs[D_REG] = regs[A_REG], 4)        // LD D, A
+IMPL_INSTR(50, regs[D_REG] = regs[B_REG], 4)        // LD D, B
+IMPL_INSTR(51, regs[D_REG] = regs[C_REG], 4)        // LD D, C
+IMPL_INSTR(52, regs[D_REG] = regs[D_REG], 4)        // LD D, D
+IMPL_INSTR(53, regs[D_REG] = regs[E_REG], 4)        // LD D, E
+IMPL_INSTR(54, regs[D_REG] = regs[H_REG], 4)        // LD D, H
+IMPL_INSTR(55, regs[D_REG] = regs[L_REG], 4)        // LD D, L
+IMPL_INSTR(56, regs[D_REG] = read_from_HL(), 8)        // LD D, (HL)
+
+IMPL_INSTR(5F, regs[E_REG] = regs[A_REG], 4)        // LD E, A
+IMPL_INSTR(58, regs[E_REG] = regs[B_REG], 4)        // LD E, B
+IMPL_INSTR(59, regs[E_REG] = regs[C_REG], 4)        // LD E, C
+IMPL_INSTR(5A, regs[E_REG] = regs[D_REG], 4)        // LD E, D
+IMPL_INSTR(5B, regs[E_REG] = regs[E_REG], 4)        // LD E, E
+IMPL_INSTR(5C, regs[E_REG] = regs[H_REG], 4)        // LD E, H
+IMPL_INSTR(5D, regs[E_REG] = regs[L_REG], 4)        // LD E, L
+IMPL_INSTR(5E, regs[E_REG] = read_from_HL(), 8)        // LD E, (HL)
+
+IMPL_INSTR(67, regs[H_REG] = regs[A_REG], 4)        // LD H, A
+IMPL_INSTR(60, regs[H_REG] = regs[B_REG], 4)        // LD H, B
+IMPL_INSTR(61, regs[H_REG] = regs[C_REG], 4)        // LD H, C
+IMPL_INSTR(62, regs[H_REG] = regs[D_REG], 4)        // LD H, D
+IMPL_INSTR(63, regs[H_REG] = regs[E_REG], 4)        // LD H, E
 IMPL_INSTR(64, regs[H_REG] = regs[H_REG], 4)        // LD H, H
 IMPL_INSTR(65, regs[H_REG] = regs[L_REG], 4)        // LD H, L
 IMPL_INSTR(66, regs[H_REG] = read_from_HL(), 8)        // LD H, (HL)
@@ -266,7 +265,9 @@ IMPL_INSTR(E8, add_spd8_instr(), 16)        // ADD SP, d8
 
 
 // MISCELLANIOUS
-IMPL_INSTR(00, , 4)        // NOP
+IMPL_INSTR(00, , 4)            // NOP
+IMPL_INSTR(FB, IME = true, 4)  // EI
+IMPL_INSTR(F3, IME = false, 4) // DI
 
 
 // JUMP / CALL
@@ -301,19 +302,91 @@ IMPL_INSTR(F7, push_instr(PC + 1); PC = 0x30, 16)    // RST 30H
 IMPL_INSTR(FF, push_instr(PC + 1); PC = 0x38, 16)    // RST 38H
 
 IMPL_INSTR(C9, PC = pop_instr(), 16)    // RET
+IMPL_INSTR(D9, IME = true; PC = pop_instr(), 16) // RETI
 IMPL_INSTR(C0, if (!get_z_bit()) PC = pop_instr(), (!get_z_bit()) ? 20 : 8)    // RET NZ
 IMPL_INSTR(C8, if (get_z_bit()) PC = pop_instr(), (get_z_bit()) ? 20 : 8)    // RET Z
 IMPL_INSTR(D0, if (!get_c_bit()) PC = pop_instr(), (!get_c_bit()) ? 20 : 8)    // RET NC
 IMPL_INSTR(D8, if (get_c_bit()) PC = pop_instr(), (get_c_bit()) ? 20 : 8)    // RET C
 
 
+IMPL_INSTR(07, regs[A_REG] = rlc_instr(A_REG), 4) // RLCA
+IMPL_INSTR(17, regs[A_REG] = rl_instr(A_REG), 4)  // RLA
+IMPL_INSTR(0F, regs[A_REG] = rrc_instr(A_REG), 4) // RRCA
+IMPL_INSTR(1F, regs[A_REG] = rr_instr(A_REG), 4)  // RRA
+
+
 // CB INSTRUCTIONS
 IMPL_INSTR(CB, execute_CB_instruction(), 0)
+
+// UNSUPPORTED INSTRUCTIONS
+IMPL_INSTR(10, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(76, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(D3, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(DB, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(DD, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(E3, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(E4, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(EB, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(EC, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(ED, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(F4, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(FC, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(FD, throw std::runtime_error("unsupported instruction"), 0)
 	
-void CPU::execute_instruction()
+void CPU::execute_one_cycle()
 {
-	uint8_t opcode = read_next_instr();
-	(this->*instr_table[opcode])();
+	if (phase == 0)
+	{
+		bool interrupts_handled = handle_interrupts();
+
+		if (!interrupts_handled)
+		{
+			uint64_t begin = clock_cycle;
+
+			uint8_t opcode = read_next_instr();
+			(this->*instr_table[opcode])();
+			max_phase = (clock_cycle - begin) / 4 - 1;
+
+			clock_cycle = begin;
+		}
+	}
+
+	if (phase == max_phase)
+	{
+		phase = 0;
+		clock_cycle += 4;
+		return;
+	}
+
+	phase++;
+	clock_cycle += 4;
+}
+
+bool CPU::handle_interrupts()
+{
+	static uint16_t interrupt_vectors[] =
+	{
+		0x0040, 0x0048, 0x0050,	0x0058, 0x0060
+	};
+
+	if (!IME)
+		return false;
+
+	uint8_t IE = mem->read_byte(0xFFFF); // Interrupt enable 
+	uint8_t IF = mem->read_byte(0xFF0F); // Interrupt flags
+
+	for (size_t i = 0; i < 4; i++)
+	{
+		if ((IE & (1 << i)) && (IF & (1 << i)))
+		{
+			mem->reset_IO_flag(Memory::ADDR_IO_IF, i); // disable interrupt flag
+			IME = false;
+			call_interrupt_instr(interrupt_vectors[i]);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void CPU::execute_CB_instruction()
@@ -611,16 +684,23 @@ void CPU::ccf_instr()
 	reset_h_bit();
 }
 
+void CPU::call_interrupt_instr(uint16_t addr)
+{
+	push_instr(PC);
+	PC = addr;
+	max_phase = 4;  // ?
+}
+
 void CPU::push_instr(uint16_t a)
 {
-	mem->write_byte(SP--, a & 0xFF);
 	mem->write_byte(SP--, (a >> 8) & 0xFF);
+	mem->write_byte(SP--, a & 0xFF);
 }
 
 uint16_t CPU::pop_instr()
 {
 	uint16_t tmp = mem->read_byte(++SP);
-	return (tmp << 8) + mem->read_byte(++SP);
+	return (mem->read_byte(++SP) << 8) + tmp;
 }
 
 void CPU::ld_hl_spd8_instr()
