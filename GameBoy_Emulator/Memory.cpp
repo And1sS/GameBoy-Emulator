@@ -1,5 +1,16 @@
-#include "PPU.h"
 #include "Memory.h"
+#include "PPU.h"
+
+
+Memory::Memory()
+{
+	memset(mem, 0, 0x10000);
+}
+
+void Memory::set_PPU(PPU* ppu)
+{
+	this->ppu = ppu;
+}
 
 uint8_t Memory::read_byte(uint16_t addr) const
 {
@@ -10,7 +21,6 @@ uint8_t Memory::read_byte(uint16_t addr) const
 	return mem[addr];
 }
 
-
 void Memory::write_byte(uint16_t addr, uint8_t value)
 {
 	if (IN_RANGE(addr, ADDR_VRAM_START, ADDR_VRAM_END))
@@ -19,7 +29,6 @@ void Memory::write_byte(uint16_t addr, uint8_t value)
 		return ppu->write_byte_OAM(addr, value);
 	mem[addr] = value;
 }
-
 
 void Memory::write_two_bytes(uint16_t addr, uint16_t value)
 {
@@ -30,35 +39,4 @@ void Memory::write_two_bytes(uint16_t addr, uint16_t value)
 void Memory::write_bytes(uint16_t addr, std::initializer_list<uint8_t> l)
 {
 	std::copy(l.begin(), l.end(), mem + addr);
-}
-
-uint8_t Memory::read_IO_byte(uint16_t addr)
-{
-	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
-		throw std::invalid_argument("address should be in IO range");
-	return mem[addr];
-}
-
-void Memory::set_IO_flag(uint16_t addr, uint8_t index)
-{
-	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
-		throw std::invalid_argument("address should be in IO range");
-
-	mem[addr] |= (1 << index);
-}
-
-void Memory::reset_IO_flag(uint16_t addr, uint8_t index)
-{
-	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
-		throw std::invalid_argument("address should be in IO range");
-
-	mem[addr] &= ~(0 << index);
-}
-
-bool Memory::get_IO_flag(uint16_t addr, uint8_t index)
-{
-	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
-		throw std::invalid_argument("address should be in IO range");
-
-	return mem[addr] & (1 << index);
 }

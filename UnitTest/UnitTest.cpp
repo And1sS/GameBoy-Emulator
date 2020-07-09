@@ -24,7 +24,7 @@ namespace UnitTest
 			Memory* mem = new Memory;
 			mem->write_bytes(0,
 				{
-						LDA, 15, LDB, 6, ADD_A_B, STA, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0
+						LDA, 15, LDB, 6, ADD_A_B, STA, 0x00, 0x01
 				});
 
 			CPU cpu(mem);
@@ -32,6 +32,8 @@ namespace UnitTest
 				cpu.execute_one_cycle();
 
 			Assert::AreEqual((uint8_t)21, mem->read_byte(0x0100));
+
+			delete mem;
 		}
 		
 		TEST_METHOD(daa_instruction)
@@ -44,7 +46,7 @@ namespace UnitTest
 				{
 					mem->write_bytes(0,
 						{
-								LDA, to_bcd(i), LDB, to_bcd(j), ADD_A_B, DAA, STA, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+								LDA, to_bcd(i), LDB, to_bcd(j), ADD_A_B, DAA, STA, 0x00, 0x01
 						});
 					CPU cpu(mem);
 					for (size_t i = 0; i < 20; i++)
@@ -55,7 +57,7 @@ namespace UnitTest
 
 					mem->write_bytes(0,
 						{
-								LDA, to_bcd(i), LDB, to_bcd(j), SUB_A_B, DAA, STA, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+								LDA, to_bcd(i), LDB, to_bcd(j), SUB_A_B, DAA, STA, 0x00, 0x01
 						});
 					CPU cpu2(mem);
 					for (size_t i = 0; i < 20; i++)
@@ -64,7 +66,7 @@ namespace UnitTest
 					Assert::AreEqual(mem->read_byte(0x0100), to_bcd((100 + i - j) % 100));
 				}
 
-
+			delete mem;
 		}
 	};
 }
