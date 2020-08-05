@@ -27,7 +27,7 @@ IMPL_INSTR(8B, regs[A_REG] = add_instr(regs[A_REG], regs[E_REG], true)    ,  4) 
 IMPL_INSTR(8C, regs[A_REG] = add_instr(regs[A_REG], regs[H_REG], true)    ,  4)     // ADC A, H
 IMPL_INSTR(8D, regs[A_REG] = add_instr(regs[A_REG], regs[L_REG], true)    ,  4)     // ADC A, L
 IMPL_INSTR(8E, regs[A_REG] = add_instr(regs[A_REG], read_from_HL(), true) ,  8)     // ADC A, (HL)
-IMPL_INSTR(CE, regs[A_REG] = add_instr(regs[A_REG], read_ud8(), false)    ,  8)     // ADC A, ud8
+IMPL_INSTR(CE, regs[A_REG] = add_instr(regs[A_REG], read_ud8(), true)     ,  8)     // ADC A, ud8
 																			        
 																			        
 // SUB INSTRUCTIONS															        
@@ -219,7 +219,8 @@ IMPL_INSTR(EA, mem->write_byte(read_d16(), regs[A_REG]), 16)                 // 
 
 IMPL_INSTR(F2, regs[A_REG] = mem->read_byte(0xFF00 + regs[C_REG]), 8)        // LD A, (FF00 + C)
 IMPL_INSTR(F0, regs[A_REG] = mem->read_byte(0xFF00 + read_ud8()), 12)        // LD A, (FF00 + a8)
-IMPL_INSTR(E2, mem->write_byte(0xFF00 + regs[C_REG], regs[A_REG]), 8)        // LD (FF00 + C), A 
+IMPL_INSTR(E2, mem->write_byte(0xFF00 + regs[C_REG], regs[A_REG]), 8)        // LD (FF00 + C), A
+IMPL_INSTR(E0, mem->write_byte(0xFF00 + read_ud8(), regs[A_REG]), 12)        // LD (FF00 + a8), A 
 
 IMPL_INSTR(2A, regs[A_REG] = read_from_HL(); inc_HL(), 8)        // LD A, (HL+)
 IMPL_INSTR(3A, regs[A_REG] = read_from_HL(); dec_HL(), 8)        // LD A, (HL-)
@@ -273,7 +274,7 @@ IMPL_INSTR(F3, IME = false, 4) // DI
 
 // JUMP / CALL
 IMPL_INSTR(C3, PC = read_d16(), 16)        // JP a16
-IMPL_INSTR(E9, PC = read_from_HL(), 4)     // JP (HL)
+IMPL_INSTR(E9, PC = get_HL(), 4)           // JP HL
 IMPL_INSTR(18, PC += read_d8(), 12)        // JP r8
 
 IMPL_INSTR(C2, if (!get_z_bit()) { PC = read_d16(); } else { PC += 2; }, (!get_z_bit()) ? 16 : 12)        // JP NZ, a16
@@ -285,7 +286,6 @@ IMPL_INSTR(20, if (!get_z_bit()) { PC += read_d8(); } else { PC++; }, (!get_z_bi
 IMPL_INSTR(28, if (get_z_bit())  { PC += read_d8(); } else { PC++; }, (get_z_bit()) ? 12 : 8)         // JR Z, d8
 IMPL_INSTR(30, if (!get_c_bit()) { PC += read_d8(); } else { PC++; }, (!get_c_bit()) ? 12 : 8)        // JR NC, d8
 IMPL_INSTR(38, if (get_c_bit())  { PC += read_d8(); } else { PC++; }, (get_c_bit()) ? 12 : 8)         // JR C, d8
-IMPL_INSTR(E0, mem->write_byte(0xFF00 + read_ud8(), regs[A_REG]), 12)                                 // LD (FF00 + a8), A 
 
 IMPL_INSTR(CD, push_instr(PC + 2); PC = read_d16(), 24)        // CALL a16
 IMPL_INSTR(C4, if (!get_z_bit()) { push_instr(PC + 2); PC = read_d16(); } else { PC += 2; }, (!get_z_bit()) ? 24 : 12)        // CALL NZ, a16
@@ -310,17 +310,17 @@ IMPL_INSTR(D0, if (!get_c_bit()) PC = pop_instr(), (!get_c_bit()) ? 20 : 8)    /
 IMPL_INSTR(D8, if (get_c_bit()) PC = pop_instr(), (get_c_bit()) ? 20 : 8)      // RET C
 
 
-IMPL_INSTR(07, regs[A_REG] = rlc_instr(regs[A_REG]), 4)  // RLCA
-IMPL_INSTR(17, regs[A_REG] = rl_instr(regs[A_REG]),  4)  // RLA
-IMPL_INSTR(0F, regs[A_REG] = rrc_instr(regs[A_REG]), 4)  // RRCA
-IMPL_INSTR(1F, regs[A_REG] = rr_instr(regs[A_REG]),  4)  // RRA
+IMPL_INSTR(07, regs[A_REG] = rlc_instr(regs[A_REG], true), 4)  // RLCA
+IMPL_INSTR(17, regs[A_REG] = rl_instr(regs[A_REG], true),  4)  // RLA
+IMPL_INSTR(0F, regs[A_REG] = rrc_instr(regs[A_REG], true), 4)  // RRCA
+IMPL_INSTR(1F, regs[A_REG] = rr_instr(regs[A_REG], true),  4)  // RRA
 
 
 // CB INSTRUCTIONS
 IMPL_INSTR(CB, execute_CB_instruction(), 0)
 
 // UNSUPPORTED INSTRUCTIONS
-IMPL_INSTR(10, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(10, /*throw std::runtime_error("unsupported instruction")*/, 0)
 IMPL_INSTR(76, throw std::runtime_error("unsupported instruction"), 0)
 IMPL_INSTR(D3, throw std::runtime_error("unsupported instruction"), 0)
 IMPL_INSTR(DB, throw std::runtime_error("unsupported instruction"), 0)
@@ -334,6 +334,309 @@ IMPL_INSTR(F4, throw std::runtime_error("unsupported instruction"), 0)
 IMPL_INSTR(FC, throw std::runtime_error("unsupported instruction"), 0)
 IMPL_INSTR(FD, throw std::runtime_error("unsupported instruction"), 0)
 
+#include <iostream>
+#include <iomanip>
+void CPU::print_debug_info(uint8_t opcode)
+{
+	static const std::string opcode_names[256] =
+	{
+	  "NOP",
+	  "LD BC,nn",
+	  "LD (BC),A",
+	  "INC BC",
+	  "INC B",
+	  "DEC B",
+	  "LD B,n",
+	  "RLCA",
+	  "LD (nn),SP",
+	  "ADD HL,BC",
+	  "LD A,(BC)",
+	  "DEC BC",
+	  "INC C",
+	  "DEC C",
+	  "LD C,n",
+	  "RRCA",
+
+	  "STOP",
+	  "LD DE,nn",
+	  "LD (DE),A",
+	  "INC DE",
+	  "INC D",
+	  "DEC D",
+	  "LD D,n",
+	  "RLA",
+	  "JR n",
+	  "ADD HL,DE",
+	  "LD A,(DE)",
+	  "DEC DE",
+	  "INC E",
+	  "DEC E",
+	  "LD E,n",
+	  "RRA",
+
+	  "JR NZ,n",
+	  "LD HL,nn",
+	  "LD (HL+),A",
+	  "INC HL",
+	  "INC H",
+	  "DEC H",
+	  "LD H,n",
+	  "DAA",
+	  "JR Z,n",
+	  "ADD HL,HL",
+	  "LD A,(HLI)",
+	  "DEC HL",
+	  "INC L",
+	  "DEC L",
+	  "LD L,n",
+	  "CPL",
+
+	  "JR NC,n",
+	  "LD SP,nn",
+	  "LD (HL-),A",
+	  "INC SP",
+	  "INC (HL)",
+	  "DEC (HL)",
+	  "LD (HL),n",
+	  "SCF",
+	  "JR C,n",
+	  "ADD HL,SP",
+	  "LD A,(HLD)",
+	  "DEC SP",
+	  "INC A",
+	  "DEC A",
+	  "LDA,n",
+	  "CCF",
+
+	  "LD B,B",
+	  "LD B,C",
+	  "LD B,D",
+	  "LD B,E",
+	  "LD B,H",
+	  "LD B,L",
+	  "LD B,(HL)",
+	  "LD B,A",
+	  "LD C,B",
+	  "LD C,C",
+	  "LD C,D",
+	  "LD C,E",
+	  "LD C,H",
+	  "LD C,L",
+	  "LD C,(HL)",
+	  "LD C,A",
+
+	  "LD D,B",
+	  "LD D,C",
+	  "LD D,D",
+	  "LD D,E",
+	  "LD D,H",
+	  "LD D,L",
+	  "LD D,(HL)",
+	  "LD D,A",
+	  "LD E,B",
+	  "LD E,C",
+	  "LD E,D",
+	  "LD E,E",
+	  "LD E,H",
+	  "LD E,L",
+	  "LD E,(HL)",
+	  "LD E,A",
+
+	  "LD H,B",
+	  "LD H,C",
+	  "LD H,D",
+	  "LD H,E",
+	  "LD H,H",
+	  "LD H,L",
+	  "LD H,(HL)",
+	  "LD H,A",
+	  "LD L,B",
+	  "LD L,C",
+	  "LD L,D",
+	  "LD L,E",
+	  "LD L,H",
+	  "LD L,L",
+	  "LD L,(HL)",
+	  "LD L,A",
+
+	  "LD (HL),B",
+	  "LD (HL),C",
+	  "LD (HL),D",
+	  "LD (HL),E",
+	  "LD (HL),H",
+	  "LD (HL),L",
+	  "HALT",
+	  "LD (HL),A",
+	  "LD A,B",
+	  "LD A,C",
+	  "LD A,D",
+	  "LD A,E",
+	  "LD A,H",
+	  "LD A,L",
+	  "LD A,(HL)",
+	  "LD A,A",
+
+	  "ADD A,B",
+	  "ADD A,C",
+	  "ADD A,D",
+	  "ADD A,E",
+	  "ADD A,H",
+	  "ADD A,L",
+	  "ADD A,(HL)",
+	  "ADD A,A",
+	  "ADC A,B",
+	  "ADC A,C",
+	  "ADC A,D",
+	  "ADC A,E",
+	  "ADC A,H",
+	  "ADC A,L",
+	  "ADC A,(HL)",
+	  "ADC A,A",
+
+	  "SUB B",
+	  "SUB C",
+	  "SUB D",
+	  "SUB E",
+	  "SUB H",
+	  "SUB L",
+	  "SUB (HL)",
+	  "SUB A",
+	  "SBC A,B",
+	  "SBC A,C",
+	  "SBC A,D",
+	  "SBC A,E",
+	  "SBC A,H",
+	  "SBC A,L",
+	  "SBC A,(HL)",
+	  "SBC A,A",
+
+	  "AND B",
+	  "AND C",
+	  "AND D",
+	  "AND E",
+	  "AND H",
+	  "AND L",
+	  "AND (HL)",
+	  "AND A",
+	  "XOR B",
+	  "XOR C",
+	  "XOR D",
+	  "XOR E",
+	  "XOR H",
+	  "XOR L",
+	  "XOR (HL)",
+	  "XOR A",
+
+	  "OR B",
+	  "OR C",
+	  "OR D",
+	  "OR E",
+	  "OR H",
+	  "OR L",
+	  "OR (HL)",
+	  "OR A",
+	  "CP B",
+	  "CP C",
+	  "CP D",
+	  "CP E",
+	  "CP H",
+	  "CP L",
+	  "CP (HL)",
+	  "CP A",
+
+	  "RET NZ",
+	  "POP BC",
+	  "JP NZ,nn",
+	  "JP nn",
+	  "CALL NZ,nn",
+	  "PUSH BC",
+	  "ADD A,n",
+	  "RST ",
+	  "RET Z",
+	  "RET",
+	  "JP Z,nn",
+	  "RL C",
+	  "CALL Z,nn",
+	  "CALL nn",
+	  "ADC A,n",
+	  "RST 0x08",
+
+	  "RET NC",
+	  "POP DE",
+	  "JP NC,nn",
+	  "unused opcode",
+	  "CALL NC,nn",
+	  "PUSH DE",
+	  "SUB n",
+	  "RST 0x10",
+	  "RET C",
+	  "RETI",
+	  "JP C,nn",
+	  "unused opcode",
+	  "CALL C,nn",
+	  "unused opcode",
+	  "SBC A,n",
+	  "RST 0x18",
+
+	  "LD (0xFF00+n),A",
+	  "POP HL",
+	  "LD (0xFF00+C),A",
+	  "unused opcode",
+	  "unused opcode",
+	  "PUSH HL",
+	  "AND n",
+	  "RST 0x20",
+	  "ADD SP,n",
+	  "JP (HL)",
+	  "LD (nn),A",
+	  "unused opcode",
+	  "unused opcode",
+	  "unused opcode",
+	  "XOR n",
+	  "RST 0x28",
+
+	  "LD A,(0xFF00+n)",
+	  "POP AF",
+	  "LD A,(0xFF00+C)",
+	  "DI",
+	  "unused opcode",
+	  "PUSH AF",
+	  "OR n",
+	  "RST 0x30",
+	  "LD HL,SP",
+	  "LD SP,HL",
+	  "LD A,(nn)",
+	  "EI",
+	  "unused opcode",
+	  "unused opcode",
+	  "CP n",
+	  "RST 0x38"
+	};
+
+	try
+	{
+		std::string instr = opcode_names[opcode];
+		uint8_t max_string_length = 20;
+		std::string spaces_string = "";
+		for (size_t i = 0; i < max_string_length - instr.size(); i++)
+			spaces_string += " ";
+
+		std::cout << instr + spaces_string
+			<< " PC: " << std::hex << std::setfill('0') << std::setw(2) << PC
+			<< " B: " << std::hex << std::setfill('0') << std::setw(2) << (int)regs[B_REG]
+			<< " C: " << std::hex << std::setfill('0') << std::setw(2) << (int)regs[C_REG]
+			<< " D: " << std::hex << std::setfill('0') << std::setw(2) << (int)regs[D_REG]
+			<< " E: " << std::hex << std::setfill('0') << std::setw(2) << (int)regs[E_REG]
+			<< " H: " << std::hex << std::setfill('0') << std::setw(2) << (int)regs[H_REG]
+			<< " L: " << std::hex << std::setfill('0') << std::setw(2) << (int)regs[L_REG]
+			<< " A: " << std::hex << std::setfill('0') << std::setw(2) << (int)regs[A_REG]
+			<< " F: " << std::bitset<8>(F).to_string()
+			<< " LY: " << (int)mem->read_byte(Memory::ADDR_IO_LY)
+			<< std::endl;
+	}
+	catch (...) {}
+}
+
 void CPU::execute_one_cycle()
 {
 	if (phase == 0)
@@ -342,7 +645,6 @@ void CPU::execute_one_cycle()
 
 		if (!interrupts_handled)
 		{
-
 			uint64_t begin = clock_cycle;
 
 			uint8_t opcode = read_next_instr();
@@ -452,21 +754,20 @@ uint8_t CPU::add_instr(uint8_t a, uint8_t b, bool use_carry)
 	if (use_carry)
 		res += get_c_bit();
 
+	uint8_t tmp = (a16 & 0x0F) + (b16 & 0x0F);
+	if (use_carry)
+		tmp += get_c_bit();
+
 	if (res > 0xFF)
 		set_c_bit();
 	else
 		reset_c_bit();
-
-	uint8_t tmp = (a16 & 0x0F) + (b16 & 0x0F);
-	if (use_carry)
-		tmp += get_c_bit();
+	res &= 0xFF;
 
 	if (tmp > 0x0F)
 		set_h_bit();
 	else
 		reset_h_bit();
-
-	res &= 0xFF;
 
 	if (res == 0)
 		set_z_bit();
@@ -484,15 +785,15 @@ uint8_t CPU::sub_instr(uint8_t a, uint8_t b, bool use_carry)
 	if (use_carry)
 		res -= get_c_bit();
 
-	if (a < b + (use_carry ? get_c_bit() : 0)) // TODO: check if not working
-		set_c_bit();
-	else
-		reset_c_bit();
-	
 	if ((a & 0x0F) < (b & 0x0F) + (use_carry ? get_c_bit() : 0))
 		set_h_bit();
 	else
 		reset_h_bit();
+
+	if (a < b + (use_carry ? get_c_bit() : 0)) // TODO: check if not working
+		set_c_bit();
+	else
+		reset_c_bit();
 
 	if (res == 0)
 		set_z_bit();
@@ -599,7 +900,7 @@ uint8_t CPU::dec_instr(uint8_t a)
 
 	set_n_bit();
 
-	if ((a & 0x0F) == 0)
+	if ((a & 0x0F) < 1)
 		set_h_bit();
 	else
 		reset_h_bit();
@@ -609,53 +910,31 @@ uint8_t CPU::dec_instr(uint8_t a)
 
 void CPU::daa_instr()
 {
-	uint8_t old_A = regs[A_REG];
-	uint8_t old_carry = get_c_bit();
-	if (get_n_bit() == 0)
-	{
-		if (((regs[A_REG] & 0x0F) > 9) || get_h_bit())
-		{
-			uint16_t temp = regs[A_REG] + 6;
-			regs[A_REG] = temp & 0xFF;
-
-			if (old_carry || (temp > 0xFF))
-				set_c_bit();
-			else
-				reset_c_bit();
-		}
-		if ((old_A > 0x99) || get_c_bit())
-		{
+	if (!get_n_bit()) 
+	{  
+		if (get_c_bit() || regs[A_REG] > 0x99) 
+		{ 
 			regs[A_REG] += 0x60;
 			set_c_bit();
 		}
-		else
-			reset_c_bit();
+		if (get_h_bit() || (regs[A_REG] & 0x0f) > 0x09) 
+			regs[A_REG] += 0x6; 
 	}
 	else
-	{
-		if (((regs[A_REG] & 0x0F) > 9) || get_h_bit())
-		{
-			uint16_t temp = regs[A_REG] - 6;
-			regs[A_REG] = temp & 0xFF;
-
-			if (old_carry || (temp < 0))
-				set_c_bit();
-			else
-				reset_c_bit();
-		}
-		if ((old_A > 0x99) || get_c_bit())
-		{
+	{  
+		if (get_c_bit()) 
 			regs[A_REG] -= 0x60;
-			set_c_bit();
-		}
-	}
 
+		if (get_h_bit()) 
+			regs[A_REG] -= 0x6;
+	}
+	
 	if (regs[A_REG] == 0)
 		set_z_bit();
 	else
 		reset_z_bit();
 
-	set_n_bit();
+	reset_h_bit(); 
 }
 
 void CPU::cpl_instr()
@@ -690,35 +969,14 @@ void CPU::call_interrupt_instr(uint16_t addr)
 
 void CPU::push_instr(uint16_t a)
 {
-	mem->write_byte(SP--, (a >> 8) & 0xFF);
-	mem->write_byte(SP--, a & 0xFF);
+	mem->write_byte(--SP, (a >> 8) & 0xFF);
+	mem->write_byte(--SP, a & 0xFF);
 }
 
 uint16_t CPU::pop_instr()
 {
-	uint16_t tmp = mem->read_byte(++SP);
-	return (mem->read_byte(++SP) << 8) + tmp;
-}
-
-void CPU::ld_hl_spd8_instr()
-{
-	int8_t d8 = read_d8();
-	uint8_t ud8 = d8;
-
-	if ((ud8 & 0x0F) + (SP & 0x0F) > 0x0F)
-		set_h_bit();
-	else
-		reset_h_bit();
-
-	if ((SP & 0xFF) + ud8 > 0xFF)
-		set_c_bit();
-	else
-		reset_c_bit();
-
-	reset_z_bit();
-	reset_n_bit();
-
-	set_HL(SP + d8);
+	uint16_t tmp = mem->read_byte(SP++);
+	return (mem->read_byte(SP++) << 8) + tmp;
 }
 
 void CPU::add_spd8_instr()
@@ -726,7 +984,7 @@ void CPU::add_spd8_instr()
 	int8_t d8 = read_d8();
 	uint8_t ud8 = d8;
 
-	if ((ud8 & 0x0F) + (SP & 0x0F) > 0x0F)
+	if ((SP & 0x0F) + (ud8 & 0x0F) > 0x0F)
 		set_h_bit();
 	else
 		reset_h_bit();
@@ -740,6 +998,27 @@ void CPU::add_spd8_instr()
 	reset_n_bit();
 
 	SP += d8;
+}
+
+void CPU::ld_hl_spd8_instr()
+{
+	int8_t d8 = read_d8();
+	uint8_t ud8 = d8;
+
+	if ((SP & 0x0F) + (ud8 & 0x0F) > 0x0F)
+		set_h_bit();
+	else
+		reset_h_bit();
+
+	if ((SP & 0xFF) + ud8 > 0xFF)
+		set_c_bit();
+	else
+		reset_c_bit();
+
+	reset_z_bit();
+	reset_n_bit();
+
+	set_HL(SP + d8);
 }
 
 uint16_t CPU::add16_instr(uint16_t a, uint16_t b)
@@ -779,6 +1058,11 @@ void CPU::bit_instr(uint8_t a, uint8_t bit)
 
 uint8_t CPU::rl_instr(uint8_t a)
 {
+	return rl_instr(a, false);
+}
+
+uint8_t CPU::rl_instr(uint8_t a, bool reset_z_bit)
+{
 	uint8_t bit_7 = (a & (1 << 7)) >> 7;
 	uint8_t res = a << 1;
 	res |= get_c_bit();
@@ -791,15 +1075,25 @@ uint8_t CPU::rl_instr(uint8_t a)
 	reset_n_bit();
 	reset_h_bit();
 
-	if (res == 0)
-		set_z_bit();
+	if (reset_z_bit)
+		this->reset_z_bit();
 	else
-		reset_z_bit();
+	{
+		if (res == 0)
+			set_z_bit();
+		else
+			this->reset_z_bit();
+	}
 
 	return res;
 }
 
 uint8_t CPU::rr_instr(uint8_t a)
+{
+	return rr_instr(a, false);
+}
+
+uint8_t CPU::rr_instr(uint8_t a, bool reset_z_bit)
 {
 	uint8_t bit_0 = a & 1;
 	uint8_t res = a >> 1;
@@ -813,15 +1107,25 @@ uint8_t CPU::rr_instr(uint8_t a)
 	reset_n_bit();
 	reset_h_bit();
 
-	if (res == 0)
-		set_z_bit();
+	if (reset_z_bit)
+		this->reset_z_bit();
 	else
-		reset_z_bit();
+	{
+		if (res == 0)
+			set_z_bit();
+		else
+			this->reset_z_bit();
+	}
 
 	return res;
 }
 
 uint8_t CPU::rlc_instr(uint8_t a)
+{
+	return rlc_instr(a, false);
+}
+
+uint8_t CPU::rlc_instr(uint8_t a, bool reset_z_bit)
 {
 	uint8_t bit_7 = (a & (1 << 7)) >> 7;
 	uint8_t res = a << 1;
@@ -835,15 +1139,25 @@ uint8_t CPU::rlc_instr(uint8_t a)
 	reset_n_bit();
 	reset_h_bit();
 
-	if (res == 0)
-		set_z_bit();
+	if (reset_z_bit)
+		this->reset_z_bit();
 	else
-		reset_z_bit();
+	{
+		if (res == 0)
+			set_z_bit();
+		else
+			this->reset_z_bit();
+	}
 
 	return res;
 }
 
 uint8_t CPU::rrc_instr(uint8_t a)
+{
+	return rrc_instr(a, false);
+}
+
+uint8_t CPU::rrc_instr(uint8_t a, bool reset_z_bit)
 {
 	uint8_t bit_0 = a & 1;
 	uint8_t res = a >> 1;
@@ -857,10 +1171,15 @@ uint8_t CPU::rrc_instr(uint8_t a)
 	reset_n_bit();
 	reset_h_bit();
 
-	if (res == 0)
-		set_z_bit();
+	if (reset_z_bit)
+		this->reset_z_bit();
 	else
-		reset_z_bit();
+	{
+		if (res == 0)
+			set_z_bit();
+		else
+			this->reset_z_bit();
+	}
 
 	return res;
 }

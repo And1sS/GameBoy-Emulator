@@ -113,6 +113,10 @@ private:
 	uint8_t   rrc_instr(uint8_t a);
 	uint8_t   rl_instr(uint8_t a);
 	uint8_t   rr_instr(uint8_t a);
+	uint8_t   rlc_instr(uint8_t a, bool reset_z_bit);
+	uint8_t   rrc_instr(uint8_t a, bool reset_z_bit);
+	uint8_t   rl_instr(uint8_t a, bool reset_z_bit);
+	uint8_t   rr_instr(uint8_t a, bool reset_z_bit);
 	uint8_t   sla_instr(uint8_t a);
 	uint8_t   sra_instr(uint8_t a);
 	uint8_t   srl_instr(uint8_t a);
@@ -141,6 +145,11 @@ public:
 	void      execute_one_cycle();			
 
 	uint64_t  get_clock_cycle() const;
+	uint16_t  get_PC() const;
+
+
+	// TODO: delete this after debug
+	void print_debug_info(uint8_t opcode);
 };
 
 inline uint8_t CPU::read_next_instr()
@@ -266,6 +275,7 @@ inline void CPU::set_AF(uint16_t a)
 {
 	regs[A_REG] = (a >> 8) & 0xFF;
 	regs[F_REG] = a & 0xFF;
+	F &= 0b11110000;
 }
 
 inline uint8_t CPU::read_from_BC() const
@@ -311,5 +321,11 @@ inline void CPU::dec_HL()
 inline uint64_t CPU::get_clock_cycle() const
 {
 	return clock_cycle;
+}
+
+
+inline uint16_t CPU::get_PC() const
+{
+	return PC;
 }
 

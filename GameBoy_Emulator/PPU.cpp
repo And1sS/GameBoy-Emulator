@@ -52,24 +52,53 @@ void PPU::_switch_mode_to(Mode mode)
 		max_phase = 51 - 1;
 		mem->reset_IO_flag(Memory::ADDR_IO_STAT, 0);
 		mem->reset_IO_flag(Memory::ADDR_IO_STAT, 1);
+
+		if (mem->get_IO_flag(Memory::ADDR_IO_STAT, 3)) // Bit 3 - Mode 0 H-Blank Interrupt (1 = Enable) (Read/Write)
+			mem->set_IO_flag(Memory::ADDR_IO_IF, 1); // Bit 1: LCD STAT Interrupt Request (INT 48h)  (1 = Request)
 		break;
+
 	case Mode::V_BLANK:
 		max_phase = 114 - 1;
 		mem->set_IO_flag(Memory::ADDR_IO_STAT, 0);
 		mem->reset_IO_flag(Memory::ADDR_IO_STAT, 1);
+
+		_check_new_line();
+
+		if (mem->get_IO_flag(Memory::ADDR_IO_STAT, 4)) // Bit 4 - Mode 1 V-Blank Interrupt (1 = Enable) (Read/Write)
+			mem->set_IO_flag(Memory::ADDR_IO_IF, 0); // Bit 0: V-Blank  Interrupt Request (INT 40h)  (1 = Request)
 		break;
+
 	case Mode::OAM_SEARCH:
 		max_phase = 20 - 1;
 		mem->reset_IO_flag(Memory::ADDR_IO_STAT, 0);
 		mem->set_IO_flag(Memory::ADDR_IO_STAT, 1);
+
+		_check_new_line();
+
+		if (mem->get_IO_flag(Memory::ADDR_IO_STAT, 5)) // Bit 5 - Mode 2 OAM Interrupt (1 = Enable) (Read/Write)
+			mem->set_IO_flag(Memory::ADDR_IO_IF, 1); // Bit 1: LCD STAT Interrupt Request (INT 48h) (1 = Request)
+
 		execute_oam_search();
 		break;
+
 	case Mode::PIXEL_DRAWING:
 		max_phase = 43 - 1;
 		mem->set_IO_flag(Memory::ADDR_IO_STAT, 0);
 		mem->set_IO_flag(Memory::ADDR_IO_STAT, 1);
 		execute_pixel_drawing();
 	}
+}
+
+void PPU::_check_new_line()
+{
+	if (mem->read_byte(Memory::ADDR_IO_LY) == mem->read_byte(Memory::ADDR_IO_LYC) &&
+		mem->get_IO_flag(Memory::ADDR_IO_STAT, 6))  // Bit 6 - LYC=LY Coincidence Interrupt (1 = Enable) (Read/Write)
+	{
+		mem->set_IO_flag(Memory::ADDR_IO_IF, 1); // Bit 1: LCD STAT Interrupt Request (INT 48h)  (1 = Request)
+		mem->set_IO_flag(Memory::ADDR_IO_STAT, 2); // Bit 2 - Coincidence Flag (0:LYC <> LY, 1:LYC = LY) (Read Only)
+	}
+	else
+		mem->reset_IO_flag(Memory::ADDR_IO_STAT, 2); // Bit 2 - Coincidence Flag (0:LYC <> LY, 1:LYC = LY) (Read Only)
 }
 
 void PPU::execute_one_cycle()
@@ -99,20 +128,9 @@ void PPU::execute_one_cycle()
 
 void PPU::execute_oam_search()
 {
-	// LYC=LY Coincidence Interrupt
-	if (mem->read_byte(Memory::ADDR_IO_LY) == mem->read_byte(Memory::ADDR_IO_LYC) &&
-		mem->get_IO_flag(Memory::ADDR_IO_STAT, 6))
-		mem->set_IO_flag(Memory::ADDR_IO_IF, 1);
-
-	// Mode 2 OAM Interrupt
-	if (mem->get_IO_flag(Memory::ADDR_IO_STAT, 5))
-		mem->set_IO_flag(Memory::ADDR_IO_IF, 1);
-
 	Sprite* sprites = reinterpret_cast<Sprite*>(OAM);
-	static std::array<std::vector<Sprite>, 256> sorting_buffer;
-
-	for (auto element : sorting_buffer)
-		element.clear();
+	auto& buff = current_line_sorted_sprites;
+	buff.clear();
 
 	uint8_t LY = mem->read_byte(Memory::ADDR_IO_LY);
 	uint8_t h = mem->get_IO_flag(Memory::ADDR_IO_LCDC, 2) ? 16 : 8; // Bit 2 - OBJ (Sprite) Size(0 = 8x8, 1 = 8x16)
@@ -121,41 +139,41 @@ void PPU::execute_oam_search()
 	for (size_t i = 0; i < SPRITES_QUANTITY; i++)
 		if (IN_RANGE(sprites[i].y, LY + 16, LY + 16 - h - 1))
 		{
-			sorting_buffer[sprites[i].x].push_back(sprites[i]);
+			buff.push_back(sprites[i]);
 			sprites_added++;
 			if (sprites_added == MAX_SPRITES_PER_LINE)
 				break;
 		}
-
-	current_line_sorted_sprites.clear();
-
-	for (auto vector : sorting_buffer)
-		for (Sprite sprite : vector)
-			if (IN_RANGE(sprite.x, 1, 167))
-				current_line_sorted_sprites.push_back(sprite);
+	
+	int32_t n = buff.size();
+	for (int32_t i = 0; i < n - 1; i++)
+	{
+		for (int32_t j = 0; j < n - i - 1; j++)
+		{
+			if (buff[j].x > buff[j + 1].x)
+				std::swap(buff[j], buff[j + 1]);
+		}
+	}
 }
 
 void PPU::execute_pixel_drawing()
 {
-	draw_background();
-	draw_sprites();
-	for (size_t i = 0; i < SCREEN_WIDTH; i++)
-		screen_buffer[mem->read_byte(Memory::ADDR_IO_LY)][i] = current_line_pixels[i];
-}
-
-void PPU::draw_background()
-{
-	// all coordinates are uint8_t (% 256), so that background wraps around the screen 
-
-	uint8_t LY  = mem->read_IO_byte(Memory::ADDR_IO_LY);
+	//draw_background();
+	// MOVE
+	uint8_t LY = mem->read_IO_byte(Memory::ADDR_IO_LY);
 	uint8_t SCX = mem->read_IO_byte(Memory::ADDR_IO_SCX);
 	uint8_t SCY = mem->read_IO_byte(Memory::ADDR_IO_SCY);
 
+	// integer division used on purpose
+	uint16_t tile_idx = 32 * (((SCY + LY) % 256) / 8) + (SCX % 256) / 8;
+	uint8_t x_in_tile = SCX % 8;
+	uint8_t y_in_tile = (SCY + LY) % 8;
+
+	uint8_t parsed_palette[4];
+	parse_palette(mem->read_IO_byte(Memory::ADDR_IO_BGP), parsed_palette);
+
 	for (uint8_t pixel_x = 0; pixel_x < SCREEN_WIDTH; pixel_x++)
 	{
-		// integer division used on purpose
-		uint16_t tile_idx = 32 * (((SCY + LY) % 256) / 8) + ((SCX + pixel_x) % 256) / 8;
-
 		uint8_t tile;
 		if (mem->get_IO_flag(Memory::ADDR_IO_LCDC, 3)) // Bit 3 - BG Tile Map Display Select  (0 = 9800-9BFF, 1 = 9C00-9FFF)
 			tile = VRAM[0x9C00 - Memory::ADDR_VRAM_START + tile_idx];
@@ -168,7 +186,59 @@ void PPU::draw_background()
 		else
 			tile_address = 0x9000 + ((int8_t)tile) * 16 - Memory::ADDR_VRAM_START;
 
-		uint8_t pixel_idx = get_pixel_from_tile(tile_address, (SCX + pixel_x) % 8, (SCY + LY) % 8);
+		uint8_t pixel_idx = get_pixel_from_tile(tile_address, x_in_tile, y_in_tile);
+		uint8_t pixel_colour = parsed_palette[pixel_idx];
+		current_line_pixels[pixel_x] = pixel_colour;
+
+		x_in_tile++;
+		if (x_in_tile == 8)
+		{
+			x_in_tile = 0;
+			tile_idx++;
+			parse_palette(mem->read_IO_byte(Memory::ADDR_IO_BGP), parsed_palette);
+		}
+	}
+	memcpy(background_line_pixels, current_line_pixels, SCREEN_WIDTH);
+	draw_window();
+	draw_sprites();
+	memcpy(screen_buffer + mem->read_byte(Memory::ADDR_IO_LY), current_line_pixels, SCREEN_WIDTH);
+}
+
+void PPU::draw_background()
+{
+	
+}
+
+void PPU::draw_window()
+{
+	if (!mem->get_IO_flag(Memory::ADDR_IO_STAT, 5)) // Bit 5 - Window Display Enable (0 = Off, 1 = On)
+		return;
+
+	uint8_t LY = mem->read_IO_byte(Memory::ADDR_IO_LY);
+	uint8_t WX = mem->read_IO_byte(Memory::ADDR_IO_WX) - 7;
+	uint8_t WY = mem->read_IO_byte(Memory::ADDR_IO_WY);
+	if (LY < WY)
+		return;
+
+	uint8_t start_pixel_x = (WX < 0) ? 0 : WX;
+	for (uint8_t pixel_x = start_pixel_x; pixel_x < SCREEN_WIDTH; pixel_x++)
+	{
+		// integer division used on purpose
+		uint16_t tile_idx = 32 * ((LY - WY) / 8) + (pixel_x - WX) / 8;
+
+		uint8_t tile;
+		if (mem->get_IO_flag(Memory::ADDR_IO_LCDC, 6)) // Bit 6 - Window Tile Map Display Select (0 = 9800-9BFF, 1 = 9C00-9FFF)
+			tile = VRAM[0x9C00 - Memory::ADDR_VRAM_START + tile_idx];
+		else
+			tile = VRAM[0x9800 - Memory::ADDR_VRAM_START + tile_idx];
+
+		uint16_t tile_address;
+		if (mem->get_IO_flag(Memory::ADDR_IO_LCDC, 4)) // Bit 4 - BG & Window Tile Data Select (0 = 8800-97FF, 1 = 8000-8FFF)
+			tile_address = 0x8000 + tile * 16 - Memory::ADDR_VRAM_START;
+		else
+			tile_address = 0x9000 + ((int8_t)tile) * 16 - Memory::ADDR_VRAM_START;
+
+		uint8_t pixel_idx = get_pixel_from_tile(tile_address, (pixel_x - WX) % 8, (LY - WY) % 8);
 		uint8_t pixel_colour = get_colour(mem->read_IO_byte(Memory::ADDR_IO_BGP), pixel_idx);
 		current_line_pixels[pixel_x] = pixel_colour;
 	}
@@ -181,6 +251,8 @@ void PPU::draw_sprites()
 
 	for (size_t i = 0; i < SCREEN_WIDTH; i++)
 		current_line_pixels[i] = 0;
+
+	uint8_t zero_index_colour = get_colour(mem->read_byte(Memory::ADDR_IO_BGP), 0);
 
 	uint8_t h = mem->get_IO_flag(Memory::ADDR_IO_LCDC, 2) ? 16 : 8; // Bit 2 - OBJ (Sprite) Size(0 = 8x8, 1 = 8x16)
 	uint8_t LY = mem->read_byte(Memory::ADDR_IO_LY);
@@ -209,6 +281,16 @@ void PPU::draw_sprites()
 
 		for (uint8_t pixel_idx = start_index; pixel_idx < end_index; pixel_idx++)
 		{
+			if (GET_BIT(sprite.flags, 7)) // Bit7   OBJ-to-BG Priority (0 = OBJ Above BG, 1 = OBJ Behind BG color 1-3)
+			{
+				uint8_t background_colour = background_line_pixels[sprite.x - 8 + pixel_idx];
+				if (background_colour != zero_index_colour)
+				{
+					current_line_pixels[sprite.x - 8 + pixel_idx] = background_colour;
+					continue;
+				}
+			}
+			
 			uint8_t colour_idx;
 			if (!flip_x)
 				colour_idx = pixel_line[pixel_idx];

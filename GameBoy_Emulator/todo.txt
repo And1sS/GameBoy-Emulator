@@ -1,7 +1,7 @@
 create GUI debugger
 rewrite cpu to use phases
 add ei di bug
-block memory r/w when ppu is in certain modes
-generate interrupts from ppu (VBLANK)
-fix sprite to background priority
 LCDC 0 bit
+implement DMA OAM transfer
+implement default values of IO registers
+add support for larger than 1 MB MBC, external RAM and MBC1m

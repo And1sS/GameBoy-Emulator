@@ -4,13 +4,14 @@
 #include <cstring>
 #include <vector>
 #include <array>
+#include <utility>
 
 #ifndef IN_RANGE
 #define IN_RANGE(VAL, START, INCLUSIVE_END) (((VAL) >= (START)) && ((VAL) <= (INCLUSIVE_END)))
 #endif // !IN_RANGE
 
 #ifndef GET_BIT
-#define GET_BIT(VAL, INDX) ((VAL) & (1 << (INDX)))
+#define GET_BIT(VAL, INDX) (((VAL) >> (INDX)) & 1)
 #endif // !GET_BIT
 
 
@@ -49,6 +50,7 @@ private:
 	uint8_t   phase       = 0;
 	uint8_t   max_phase;
 
+	uint8_t   background_line_pixels[SCREEN_WIDTH];
 	uint8_t   current_line_pixels[SCREEN_WIDTH];
 	uint8_t   screen_buffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 	
@@ -58,19 +60,21 @@ private:
 
 	void    switch_mode();
 	void    _switch_mode_to(Mode mode);
+	void    _check_new_line();
 
 	void    execute_oam_search();
 	void    execute_pixel_drawing();
 
 
 	void    draw_background();
+	void    draw_window();
 	void    draw_sprites();
 
 	// address into VRAM
 	std::array<uint8_t, 8> bytes_to_pixel_line(uint16_t address) const;
 	uint8_t get_pixel_from_tile(uint16_t tile_address, uint8_t x, uint8_t y) const;
 	uint8_t get_colour(uint8_t palette, uint8_t index) const;
-	
+	inline void parse_palette(uint8_t palette, uint8_t* dest) const;
 public:
 	PPU(Memory* mem);
 
@@ -93,7 +97,7 @@ inline std::array<uint8_t, 8> PPU::bytes_to_pixel_line(uint16_t address) const
 	uint8_t second = VRAM[address + 1];
 	std::array<uint8_t, 8> res;
 	for (uint8_t i = 0; i < 8; i++)
-		res[7 - i] = ((GET_BIT(first, i) >> i) << 1) | (GET_BIT(second, i) >> i);
+		res[7 - i] = (GET_BIT(first, i) << 1) | GET_BIT(second, i);
 	return res;
 }
 
@@ -102,9 +106,17 @@ inline uint8_t PPU::get_pixel_from_tile(uint16_t tile_address, uint8_t x, uint8_
 	uint8_t first = VRAM[tile_address + y * 2];
 	uint8_t second = VRAM[tile_address + y * 2 + 1];
 	uint8_t bit = 7 - x;
-	return ((GET_BIT(first, bit) >> (bit)) << 1) | (GET_BIT(second, bit) >> (bit));
+	return (GET_BIT(first, bit) << 1) | GET_BIT(second, bit);
 }
 
+inline void PPU::parse_palette(uint8_t palette, uint8_t* dest) const
+{
+	for (int i = 0; i < 4; i++)
+	{
+		dest[i] = palette & 0b00000011;
+		palette >>= 2;
+	}
+}
 
 inline uint8_t PPU::get_colour(uint8_t palette, uint8_t index) const
 {
