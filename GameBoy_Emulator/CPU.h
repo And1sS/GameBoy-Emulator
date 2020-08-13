@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <bitset>
 
 #include "Memory.h"
+#include "Timer.h"
 #include "instructions_definitions.h"
 
 class CPU;
@@ -30,7 +32,8 @@ private:
 	static constexpr uint8_t F_REG = 7;
 
 
-	bool IME = false;               // Interrupts enabled / disabled
+	bool IME    = false;            // Interrupts enabled / disabled
+	bool halted = false;
 
 	uint8_t   regs[8];              // BC, DE, HL, AF Registers
 	uint8_t&  F = regs[F_REG];      // Flag Register
@@ -42,6 +45,7 @@ private:
 	uint8_t   max_phase;
 
 	Memory*   mem;
+	Timer*    timer;
 
 	DECLARE_INSTRUCTIONS
 	DECLARE_INSTRUCTIONS_TABLE
@@ -125,6 +129,7 @@ private:
 	uint16_t  add16_instr(uint16_t a, uint16_t b);
 
 	void      call_interrupt_instr(uint16_t addr);
+	void      halt_instr();
 	void      push_instr(uint16_t a);
 	void      cp_instr(uint8_t a, uint8_t b);
 	void      daa_instr();
@@ -136,8 +141,7 @@ private:
 	void      bit_instr(uint8_t a, uint8_t bit);
 	
 public:
-	
-	CPU(Memory* mem) : mem(mem) 
+	CPU(Memory* mem, Timer* timer) : mem(mem), timer(timer)
 	{
 		memset(regs, 0, 8);
 	}

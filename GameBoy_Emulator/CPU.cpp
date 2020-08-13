@@ -316,12 +316,13 @@ IMPL_INSTR(0F, regs[A_REG] = rrc_instr(regs[A_REG], true), 4)  // RRCA
 IMPL_INSTR(1F, regs[A_REG] = rr_instr(regs[A_REG], true),  4)  // RRA
 
 
-// CB INSTRUCTIONS
-IMPL_INSTR(CB, execute_CB_instruction(), 0)
+
+IMPL_INSTR(CB, execute_CB_instruction(), 0) // CB INSTRUCTIONS
+
+IMPL_INSTR(76, halt_instr(), 4) // HALT
 
 // UNSUPPORTED INSTRUCTIONS
-IMPL_INSTR(10, /*throw std::runtime_error("unsupported instruction")*/, 0)
-IMPL_INSTR(76, throw std::runtime_error("unsupported instruction"), 0)
+IMPL_INSTR(10, /*throw std::runtime_error("unsupported instruction")*/, 4)
 IMPL_INSTR(D3, throw std::runtime_error("unsupported instruction"), 0)
 IMPL_INSTR(DB, throw std::runtime_error("unsupported instruction"), 0)
 IMPL_INSTR(DD, throw std::runtime_error("unsupported instruction"), 0)
@@ -643,18 +644,23 @@ void CPU::execute_one_cycle()
 	{
 		bool interrupts_handled = handle_interrupts();
 
+		if (!interrupts_handled && halted)
+			return;
+
 		if (!interrupts_handled)
 		{
 			uint64_t begin = clock_cycle;
 
 			uint8_t opcode = read_next_instr();
-			(this->*instr_table[opcode])();
+ 			(this->*instr_table[opcode])();
 			max_phase = (clock_cycle - begin) / 4 - 1;
 
 			clock_cycle = begin;
 
 			//print_debug_info(opcode);
 		}
+		else 
+			halted = false;
 	}
 
 	if (phase == max_phase)
@@ -671,16 +677,21 @@ bool CPU::handle_interrupts()
 		0x0040, 0x0048, 0x0050,	0x0058, 0x0060
 	};
 
-	if (!IME)
+	if (!halted && !IME)
 		return false;
-
-	uint8_t IE = mem->read_byte(0xFFFF); // Interrupt enable 
-	uint8_t IF = mem->read_byte(0xFF0F); // Interrupt flags
+	
+	uint8_t IE = mem->read_byte(Memory::ADDR_IE); // Interrupt enable 
+	uint8_t IF = mem->read_IO_byte(Memory::ADDR_IO_IF); // Interrupt flags
 
 	for (size_t i = 0; i < 4; i++)
 	{
 		if ((IE & (1 << i)) && (IF & (1 << i)))
 		{
+			if (halted && !IME)
+			{
+				halted = false;
+				return false;
+			}
 			mem->reset_IO_flag(Memory::ADDR_IO_IF, i); // disable interrupt flag
 			IME = false;
 			call_interrupt_instr(interrupt_vectors[i]);
@@ -694,7 +705,7 @@ bool CPU::handle_interrupts()
 void CPU::execute_CB_instruction()
 {
 	typedef uint8_t(CPU::* type_instr_CB) (uint8_t);
-	static type_instr_CB instrs[8] =
+	static constexpr type_instr_CB instrs[8] =
 	{
 		& CPU::rlc_instr, & CPU::rrc_instr, & CPU::rl_instr, & CPU::rr_instr,
 		& CPU::sla_instr, & CPU::sra_instr, & CPU::swap_instr, & CPU::srl_instr
@@ -965,6 +976,15 @@ void CPU::call_interrupt_instr(uint16_t addr)
 	push_instr(PC);
 	PC = addr;
 	max_phase = 4;  // ?
+}
+
+void CPU::halt_instr()
+{
+	if (mem->read_IO_byte(Memory::ADDR_IO_IF) &
+		mem->read_byte(Memory::ADDR_IE) & 0b11111)
+		return; // TODO: implement hardware bug
+
+	halted = true;
 }
 
 void CPU::push_instr(uint16_t a)

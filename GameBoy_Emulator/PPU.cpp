@@ -123,7 +123,6 @@ void PPU::execute_one_cycle()
 		phase = 0;
 	else
 		phase++;
-	clock_cycle += 4;
 }
 
 void PPU::execute_oam_search()

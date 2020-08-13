@@ -1,4 +1,6 @@
 #include "CppUnitTest.h"
+#include "../GameBoy_Emulator/Timer.h"
+#include "../GameBoy_Emulator/Timer.cpp"
 #include "../GameBoy_Emulator/CPU.h"
 #include "../GameBoy_Emulator/CPU.cpp"
 #include "../GameBoy_Emulator/Memory.cpp"

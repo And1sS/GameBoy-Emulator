@@ -1,5 +1,6 @@
 #include "Memory.h"
 #include "PPU.h"
+#include "Timer.h"
 
 
 Memory::Memory()
@@ -8,7 +9,7 @@ Memory::Memory()
 }
 
 
-Memory::Memory(std::istream& file)
+Memory::Memory(std::istream& file) 
 {
 	file.seekg(0x148); // 0148 - ROM Size
 	uint8_t rom_size_flag = file.get();
@@ -71,6 +72,11 @@ Memory::Memory(std::istream& file)
 	memcpy(mem, boot_rom, 256);
 }
 
+void Memory::set_timer(Timer* timer)
+{
+	this->timer = timer;
+}
+
 void Memory::set_PPU(PPU* ppu)
 {
 	this->ppu = ppu;
@@ -87,13 +93,16 @@ uint8_t Memory::read_byte(uint16_t addr) const
 
 void Memory::write_byte(uint16_t addr, uint8_t value)
 {
-	if (addr == 0xFF50 && value == 1)
+	if (addr == 0xFF50 && value == 1) // turn off boot ROM
 		memcpy(mem, cartridge.data(), 256);
 
 	if (IN_RANGE(addr, ADDR_VRAM_START, ADDR_VRAM_END))
 		return ppu->write_byte_VRAM(addr, value);
 	else if (IN_RANGE(addr, ADDR_OAM_START, ADDR_OAM_END))
 		return ppu->write_byte_OAM(addr, value);
+
+	if (addr >= ADDR_IO_DIV && addr <= ADDR_IO_TAC)
+		return timer->process_timer_IO_write(addr, value);
 
 	if (type == Type::ROM_ONLY)
 		mem[addr] = value;

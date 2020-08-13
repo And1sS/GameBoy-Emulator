@@ -6,14 +6,7 @@
 #include <array>
 #include <utility>
 
-#ifndef IN_RANGE
-#define IN_RANGE(VAL, START, INCLUSIVE_END) (((VAL) >= (START)) && ((VAL) <= (INCLUSIVE_END)))
-#endif // !IN_RANGE
-
-#ifndef GET_BIT
-#define GET_BIT(VAL, INDX) (((VAL) >> (INDX)) & 1)
-#endif // !GET_BIT
-
+#include "util.h"
 
 class Memory;
 
@@ -46,7 +39,6 @@ private:
 	uint8_t   VRAM[0x2000];
 	uint8_t   OAM[0xA0];
 
-	uint64_t  clock_cycle = 0;
 	uint8_t   phase       = 0;
 	uint8_t   max_phase;
 

@@ -8,6 +8,7 @@
 #include "Memory.h"
 #include "CPU.h"
 #include "PPU.h"
+#include "Timer.h"
 
 HANDLE hConsole;
 wchar_t* screen;
@@ -31,9 +32,12 @@ int main()
 	screen = new wchar_t[144 * 162];
 
 	std::ifstream in("cpu_instrs.gb", std::ios::binary);
+
 	Memory* mem = new Memory(in);
-	CPU cpu(mem);
+	Timer timer(mem);
+	CPU cpu(mem, &timer);
 	PPU ppu(mem);
+	mem->set_timer(&timer);
 	mem->set_PPU(&ppu);
 
 	auto prev_mode = ppu.get_mode();
@@ -60,6 +64,7 @@ int main()
 
 		cpu.execute_one_cycle();
 		ppu.execute_one_cycle();
+		timer.execute_one_cycle();
 	}
 
 	delete mem;

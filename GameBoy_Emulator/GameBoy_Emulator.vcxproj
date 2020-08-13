@@ -159,12 +159,15 @@
     <ClCompile Include="GameBoy_Emulator.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="PPU.cpp" />
+    <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPU.h" />
     <ClInclude Include="instructions_definitions.h" />
     <ClInclude Include="Memory.h" />
     <ClInclude Include="PPU.h" />
+    <ClInclude Include="Timer.h" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
