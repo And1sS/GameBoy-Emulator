@@ -1,5 +1,6 @@
 #include "CPU.h"
 #include "Memory.h"
+#include "PPU.h"
 
 #define IMPL_INSTR(OPCODE, IMPLEMENTATION, CYCLES) \
 	void CPU::instr_##OPCODE()                     \
@@ -267,9 +268,11 @@ IMPL_INSTR(E8, add_spd8_instr(), 16)                              // ADD SP, d8
 
 
 // MISCELLANIOUS
-IMPL_INSTR(00, , 4)            // NOP
-IMPL_INSTR(FB, IME = true, 4)  // EI
-IMPL_INSTR(F3, IME = false, 4) // DI
+IMPL_INSTR(00, , 4)				// NOP
+IMPL_INSTR(FB, IME = true, 4)	// EI
+IMPL_INSTR(F3, IME = false, 4)	// DI
+IMPL_INSTR(10, PC++, 4)				// STOP
+IMPL_INSTR(76, halt_instr(), 4) // HALT
 
 
 // JUMP / CALL
@@ -277,21 +280,33 @@ IMPL_INSTR(C3, PC = read_d16(), 16)        // JP a16
 IMPL_INSTR(E9, PC = get_HL(), 4)           // JP HL
 IMPL_INSTR(18, PC += read_d8(), 12)        // JP r8
 
-IMPL_INSTR(C2, if (!get_z_bit()) { PC = read_d16(); } else { PC += 2; }, (!get_z_bit()) ? 16 : 12)        // JP NZ, a16
-IMPL_INSTR(CA, if (get_z_bit())  { PC = read_d16(); } else { PC += 2; }, (get_z_bit()) ? 16 : 12)         // JP Z, a16
-IMPL_INSTR(D2, if (!get_c_bit()) { PC = read_d16(); } else { PC += 2; }, (!get_c_bit()) ? 16 : 12)        // JP NC, a16
-IMPL_INSTR(DA, if (get_c_bit())  { PC = read_d16(); } else { PC += 2; }, (get_c_bit()) ? 16 : 12)         // JP C, a16 
+IMPL_INSTR(C2, if (!get_z_bit()) { PC = read_d16(); }
+else { PC += 2; }, (!get_z_bit()) ? 16 : 12)        // JP NZ, a16
+IMPL_INSTR(CA, if (get_z_bit()) { PC = read_d16(); }
+else { PC += 2; }, (get_z_bit()) ? 16 : 12)         // JP Z, a16
+IMPL_INSTR(D2, if (!get_c_bit()) { PC = read_d16(); }
+else { PC += 2; }, (!get_c_bit()) ? 16 : 12)        // JP NC, a16
+IMPL_INSTR(DA, if (get_c_bit()) { PC = read_d16(); }
+else { PC += 2; }, (get_c_bit()) ? 16 : 12)         // JP C, a16 
 
-IMPL_INSTR(20, if (!get_z_bit()) { PC += read_d8(); } else { PC++; }, (!get_z_bit()) ? 12 : 8)        // JR NZ, d8
-IMPL_INSTR(28, if (get_z_bit())  { PC += read_d8(); } else { PC++; }, (get_z_bit()) ? 12 : 8)         // JR Z, d8
-IMPL_INSTR(30, if (!get_c_bit()) { PC += read_d8(); } else { PC++; }, (!get_c_bit()) ? 12 : 8)        // JR NC, d8
-IMPL_INSTR(38, if (get_c_bit())  { PC += read_d8(); } else { PC++; }, (get_c_bit()) ? 12 : 8)         // JR C, d8
+IMPL_INSTR(20, if (!get_z_bit()) { PC += read_d8(); }
+else { PC++; }, (!get_z_bit()) ? 12 : 8)        // JR NZ, d8
+IMPL_INSTR(28, if (get_z_bit()) { PC += read_d8(); }
+else { PC++; }, (get_z_bit()) ? 12 : 8)         // JR Z, d8
+IMPL_INSTR(30, if (!get_c_bit()) { PC += read_d8(); }
+else { PC++; }, (!get_c_bit()) ? 12 : 8)        // JR NC, d8
+IMPL_INSTR(38, if (get_c_bit()) { PC += read_d8(); }
+else { PC++; }, (get_c_bit()) ? 12 : 8)         // JR C, d8
 
 IMPL_INSTR(CD, push_instr(PC + 2); PC = read_d16(), 24)        // CALL a16
-IMPL_INSTR(C4, if (!get_z_bit()) { push_instr(PC + 2); PC = read_d16(); } else { PC += 2; }, (!get_z_bit()) ? 24 : 12)        // CALL NZ, a16
-IMPL_INSTR(CC, if (get_z_bit())  { push_instr(PC + 2); PC = read_d16(); } else { PC += 2; }, (get_z_bit()) ? 24 : 12)         // CALL Z, a16
-IMPL_INSTR(D4, if (!get_c_bit()) { push_instr(PC + 2); PC = read_d16(); } else { PC += 2; }, (!get_c_bit()) ? 24 : 12)        // CALL NC, a16
-IMPL_INSTR(DC, if (get_c_bit())  { push_instr(PC + 2); PC = read_d16(); } else { PC += 2; }, (get_c_bit()) ? 24 : 12)         // CALL C, a16
+IMPL_INSTR(C4, if (!get_z_bit()) { push_instr(PC + 2); PC = read_d16(); }
+else { PC += 2; }, (!get_z_bit()) ? 24 : 12)        // CALL NZ, a16
+IMPL_INSTR(CC, if (get_z_bit()) { push_instr(PC + 2); PC = read_d16(); }
+else { PC += 2; }, (get_z_bit()) ? 24 : 12)         // CALL Z, a16
+IMPL_INSTR(D4, if (!get_c_bit()) { push_instr(PC + 2); PC = read_d16(); }
+else { PC += 2; }, (!get_c_bit()) ? 24 : 12)        // CALL NC, a16
+IMPL_INSTR(DC, if (get_c_bit()) { push_instr(PC + 2); PC = read_d16(); }
+else { PC += 2; }, (get_c_bit()) ? 24 : 12)         // CALL C, a16
 
 IMPL_INSTR(C7, push_instr(PC); PC = 0x00, 16)    // RST 00H
 IMPL_INSTR(CF, push_instr(PC); PC = 0x08, 16)    // RST 08H
@@ -311,18 +326,17 @@ IMPL_INSTR(D8, if (get_c_bit()) PC = pop_instr(), (get_c_bit()) ? 20 : 8)      /
 
 
 IMPL_INSTR(07, regs[A_REG] = rlc_instr(regs[A_REG], true), 4)  // RLCA
-IMPL_INSTR(17, regs[A_REG] = rl_instr(regs[A_REG], true),  4)  // RLA
+IMPL_INSTR(17, regs[A_REG] = rl_instr(regs[A_REG], true), 4)  // RLA
 IMPL_INSTR(0F, regs[A_REG] = rrc_instr(regs[A_REG], true), 4)  // RRCA
-IMPL_INSTR(1F, regs[A_REG] = rr_instr(regs[A_REG], true),  4)  // RRA
+IMPL_INSTR(1F, regs[A_REG] = rr_instr(regs[A_REG], true), 4)  // RRA
 
 
 
 IMPL_INSTR(CB, execute_CB_instruction(), 0) // CB INSTRUCTIONS
 
-IMPL_INSTR(76, halt_instr(), 4) // HALT
 
 // UNSUPPORTED INSTRUCTIONS
-IMPL_INSTR(10, /*throw std::runtime_error("unsupported instruction")*/, 4)
+
 IMPL_INSTR(D3, throw std::runtime_error("unsupported instruction"), 0)
 IMPL_INSTR(DB, throw std::runtime_error("unsupported instruction"), 0)
 IMPL_INSTR(DD, throw std::runtime_error("unsupported instruction"), 0)
@@ -652,6 +666,7 @@ void CPU::execute_one_cycle()
 			uint64_t begin = clock_cycle;
 
 			uint8_t opcode = read_next_instr();
+			
  			(this->*instr_table[opcode])();
 			max_phase = (clock_cycle - begin) / 4 - 1;
 
@@ -680,12 +695,16 @@ bool CPU::handle_interrupts()
 	if (!halted && !IME)
 		return false;
 	
-	uint8_t IE = mem->read_byte(Memory::ADDR_IE); // Interrupt enable 
-	uint8_t IF = mem->read_IO_byte(Memory::ADDR_IO_IF); // Interrupt flags
+	uint8_t IE = mem->unchecked_read_byte(Memory::ADDR_IE); // Interrupt enable 
+	uint8_t IF = mem->unchecked_read_byte(Memory::ADDR_IO_IF); // Interrupt flags
+
+	if ((IE & IF & 0b11111) == 0)
+		return false;
 
 	for (size_t i = 0; i < 4; i++)
 	{
-		if ((IE & (1 << i)) && (IF & (1 << i)))
+		uint8_t tmp = (1 << i);
+		if ((IE & tmp) && (IF & tmp))
 		{
 			if (halted && !IME)
 			{
@@ -720,7 +739,11 @@ void CPU::execute_CB_instruction()
 	if (reg == 6)
 	{
 		operand = read_from_HL();
-		clock_cycle += 8;
+
+		if (IN_RANGE(opcode / 16, 4, 7))
+			clock_cycle += 4;
+		else
+			clock_cycle += 8;
 	}
 	else if (reg == 7)
 		operand = regs[A_REG];

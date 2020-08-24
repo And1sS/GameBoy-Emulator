@@ -5,10 +5,31 @@
 
 PPU::PPU(Memory* mem) : mem(mem)
 {
-	memset(VRAM, 0, 0x2000);
-	memset(OAM, 0, 0xA0);
+	memset(VRAM.data(), 0, 0x2000);
+	memset(OAM.data(), 0, 0xA0);
 
 	mode = Mode::DISABLED;
+}
+
+#include <iostream>
+#include <iomanip>
+void PPU::print_video_memory()
+{
+	/*for (int i = 0; i < VRAM.size() / 16; i++)
+	{
+		//std::cout << std::hex << Memory::ADDR_VRAM_START + i * 16 << ": ";
+		for (int j = 0; j < 16; j++)
+			std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)VRAM[i * 16 + j];// << " ";
+		//std::cout << std::endl;
+	}*/
+	/*for (int i = 0; i < OAM.size() / 16; i++)
+	{
+		//std::cout << std::hex << Memory::ADDR_OAM_START + i * 16 << ": ";
+		for (int j = 0; j < 16; j++)
+			std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)OAM[i * 16 + j];// << " ";
+		//std::cout << std::endl;
+	}
+	std::cout << "\n\n\n\n\n" << "/////////////////////////////////////////////////" << "\n\n\n\n";*/
 }
 
 void PPU::switch_mode()
@@ -64,8 +85,9 @@ void PPU::_switch_mode_to(Mode mode)
 
 		_check_new_line();
 
+		mem->set_IO_flag(Memory::ADDR_IO_IF, 0); // Bit 0: V-Blank  Interrupt Request (INT 40h)  (1 = Request)
 		if (mem->get_IO_flag(Memory::ADDR_IO_STAT, 4)) // Bit 4 - Mode 1 V-Blank Interrupt (1 = Enable) (Read/Write)
-			mem->set_IO_flag(Memory::ADDR_IO_IF, 0); // Bit 0: V-Blank  Interrupt Request (INT 40h)  (1 = Request)
+			mem->set_IO_flag(Memory::ADDR_IO_IF, 1); // Bit 1: LCD STAT Interrupt Request (INT 48h)  (1 = Request)
 		break;
 
 	case Mode::OAM_SEARCH:
@@ -91,11 +113,12 @@ void PPU::_switch_mode_to(Mode mode)
 
 void PPU::_check_new_line()
 {
-	if (mem->read_byte(Memory::ADDR_IO_LY) == mem->read_byte(Memory::ADDR_IO_LYC) &&
-		mem->get_IO_flag(Memory::ADDR_IO_STAT, 6))  // Bit 6 - LYC=LY Coincidence Interrupt (1 = Enable) (Read/Write)
+	if (mem->read_byte(Memory::ADDR_IO_LY) == mem->read_byte(Memory::ADDR_IO_LYC))  
 	{
-		mem->set_IO_flag(Memory::ADDR_IO_IF, 1); // Bit 1: LCD STAT Interrupt Request (INT 48h)  (1 = Request)
 		mem->set_IO_flag(Memory::ADDR_IO_STAT, 2); // Bit 2 - Coincidence Flag (0:LYC <> LY, 1:LYC = LY) (Read Only)
+
+		if (mem->get_IO_flag(Memory::ADDR_IO_STAT, 6)) // Bit 6 - LYC=LY Coincidence Interrupt (1 = Enable) (Read/Write)
+			mem->set_IO_flag(Memory::ADDR_IO_IF, 1); // Bit 1: LCD STAT Interrupt Request (INT 48h)  (1 = Request)
 	}
 	else
 		mem->reset_IO_flag(Memory::ADDR_IO_STAT, 2); // Bit 2 - Coincidence Flag (0:LYC <> LY, 1:LYC = LY) (Read Only)
@@ -127,16 +150,17 @@ void PPU::execute_one_cycle()
 
 void PPU::execute_oam_search()
 {
-	Sprite* sprites = reinterpret_cast<Sprite*>(OAM);
+	Sprite* sprites = reinterpret_cast<Sprite*>(OAM.data());
 	auto& buff = current_line_sorted_sprites;
 	buff.clear();
 
 	uint8_t LY = mem->read_byte(Memory::ADDR_IO_LY);
 	uint8_t h = mem->get_IO_flag(Memory::ADDR_IO_LCDC, 2) ? 16 : 8; // Bit 2 - OBJ (Sprite) Size(0 = 8x8, 1 = 8x16)
 
+	
 	size_t sprites_added = 0;
 	for (size_t i = 0; i < SPRITES_QUANTITY; i++)
-		if (IN_RANGE(sprites[i].y, LY + 16, LY + 16 - h - 1))
+		if (IN_RANGE(sprites[i].y, LY + 16 - h + 1, LY + 16))
 		{
 			buff.push_back(sprites[i]);
 			sprites_added++;
@@ -157,8 +181,17 @@ void PPU::execute_oam_search()
 
 void PPU::execute_pixel_drawing()
 {
-	//draw_background();
-	// MOVE
+	draw_background();	
+	draw_window();
+	background_line_pixels = current_line_pixels;
+	if (!mem->get_dma_transfer())
+		draw_sprites();
+	
+	screen_buffer[mem->read_byte(Memory::ADDR_IO_LY)] = current_line_pixels;
+}
+
+void PPU::draw_background()
+{
 	uint8_t LY = mem->read_IO_byte(Memory::ADDR_IO_LY);
 	uint8_t SCX = mem->read_IO_byte(Memory::ADDR_IO_SCX);
 	uint8_t SCY = mem->read_IO_byte(Memory::ADDR_IO_SCY);
@@ -194,27 +227,61 @@ void PPU::execute_pixel_drawing()
 		{
 			x_in_tile = 0;
 			tile_idx++;
+			if (((uint16_t)SCX) + pixel_x == 255)
+				tile_idx -= 32;
 			parse_palette(mem->read_IO_byte(Memory::ADDR_IO_BGP), parsed_palette);
 		}
 	}
-	memcpy(background_line_pixels, current_line_pixels, SCREEN_WIDTH);
-	draw_window();
-	draw_sprites();
-	memcpy(screen_buffer + mem->read_byte(Memory::ADDR_IO_LY), current_line_pixels, SCREEN_WIDTH);
 }
 
-void PPU::draw_background()
+void PPU::get_tile_map(std::array<PPU::line<256>, 256>& screen)
 {
-	
+	for (uint8_t LY = 0; LY != 255; LY++)
+	{
+		// integer division used on purpose
+		uint16_t tile_idx = 32 * (LY / 8);
+		uint8_t x_in_tile = 0;
+		uint8_t y_in_tile = LY % 8;
+
+		uint8_t parsed_palette[4];
+		parse_palette(mem->read_IO_byte(Memory::ADDR_IO_BGP), parsed_palette);
+
+		for (uint8_t pixel_x = 0; pixel_x != 255; pixel_x++)
+		{
+			uint8_t tile;
+			if (mem->get_IO_flag(Memory::ADDR_IO_LCDC, 3)) // Bit 3 - BG Tile Map Display Select  (0 = 9800-9BFF, 1 = 9C00-9FFF)
+				tile = VRAM[0x9C00 - Memory::ADDR_VRAM_START + tile_idx];
+			else
+				tile = VRAM[0x9800 - Memory::ADDR_VRAM_START + tile_idx];
+
+			uint16_t tile_address;
+			if (mem->get_IO_flag(Memory::ADDR_IO_LCDC, 4)) // Bit 4 - BG & Window Tile Data Select (0 = 8800-97FF, 1 = 8000-8FFF)
+				tile_address = 0x8000 + tile * 16 - Memory::ADDR_VRAM_START;
+			else
+				tile_address = 0x9000 + ((int8_t)tile) * 16 - Memory::ADDR_VRAM_START;
+
+			uint8_t pixel_idx = get_pixel_from_tile(tile_address, x_in_tile, y_in_tile);
+			uint8_t pixel_colour = parsed_palette[pixel_idx];
+			screen[LY][pixel_x] = pixel_colour;
+
+			x_in_tile++;
+			if (x_in_tile == 8)
+			{
+				x_in_tile = 0;
+				tile_idx++;
+				parse_palette(mem->read_IO_byte(Memory::ADDR_IO_BGP), parsed_palette);
+			}
+		}
+	}
 }
 
 void PPU::draw_window()
 {
-	if (!mem->get_IO_flag(Memory::ADDR_IO_STAT, 5)) // Bit 5 - Window Display Enable (0 = Off, 1 = On)
+	if (!mem->get_IO_flag(Memory::ADDR_IO_LCDC, 5)) // Bit 5 - Window Display Enable (0 = Off, 1 = On)
 		return;
 
 	uint8_t LY = mem->read_IO_byte(Memory::ADDR_IO_LY);
-	uint8_t WX = mem->read_IO_byte(Memory::ADDR_IO_WX) - 7;
+	int16_t WX = mem->read_IO_byte(Memory::ADDR_IO_WX) - 7;
 	uint8_t WY = mem->read_IO_byte(Memory::ADDR_IO_WY);
 	if (LY < WY)
 		return;
@@ -248,9 +315,6 @@ void PPU::draw_sprites()
 	if (!mem->get_IO_flag(Memory::ADDR_IO_LCDC, 1)) // Bit 1 - OBJ (Sprite) Display Enable(0 = Off, 1 = On)
 		return;
 
-	for (size_t i = 0; i < SCREEN_WIDTH; i++)
-		current_line_pixels[i] = 0;
-
 	uint8_t zero_index_colour = get_colour(mem->read_byte(Memory::ADDR_IO_BGP), 0);
 
 	uint8_t h = mem->get_IO_flag(Memory::ADDR_IO_LCDC, 2) ? 16 : 8; // Bit 2 - OBJ (Sprite) Size(0 = 8x8, 1 = 8x16)
@@ -267,18 +331,18 @@ void PPU::draw_sprites()
 		bool flip_x = GET_BIT(sprite.flags, 5); // Bit5   X flip (0 = Normal, 1 = Horizontally mirrored)
 		bool flip_y = GET_BIT(sprite.flags, 6); // Bit6   Y flip (0 = Normal, 1 = Vertically mirrored)
 
-		uint8_t line_address;
+		uint16_t line_address = ADDR_SPRITES_DATA_START + sprite.tile_number * 16;
 		if (!flip_y)
-			line_address = ADDR_SPRITES_DATA_START + sprite.tile_number + (LY - (sprite.y - h));
+			line_address += (LY - (sprite.y - 16)) * 2;
 		else
-			line_address = ADDR_SPRITES_DATA_START + sprite.tile_number + (h - 1) - (LY - (sprite.y - h));
+			line_address += ((h - 1) - (LY - (sprite.y - 16))) * 2;
 
 		std::array<uint8_t, 8> pixel_line = bytes_to_pixel_line(line_address);
 
-		uint8_t start_index = (sprite.x - 8 < 0) ? (8 - sprite.x) : 0; // sprites are always 8 pixels wide
-		uint8_t end_index = (sprite.x >= 160) ? (168 - sprite.x) : 8; // exclusive
+		int16_t start_index = (sprite.x - 8 < 0) ? (8 - sprite.x) : 0; // sprites are always 8 pixels wide
+		int16_t end_index = (sprite.x >= 160) ? (168 - sprite.x) : 8; // exclusive
 
-		for (uint8_t pixel_idx = start_index; pixel_idx < end_index; pixel_idx++)
+		for (int16_t pixel_idx = start_index; pixel_idx < end_index; pixel_idx++)
 		{
 			if (GET_BIT(sprite.flags, 7)) // Bit7   OBJ-to-BG Priority (0 = OBJ Above BG, 1 = OBJ Behind BG color 1-3)
 			{

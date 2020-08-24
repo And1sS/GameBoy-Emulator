@@ -6,6 +6,5 @@ implement DMA OAM transfer
 implement default values of IO registers
 add support for larger than 1 MB MBC, external RAM and MBC1m
 add halt bug
-
-
-timer.execute_one_cycle should be called before everyone else
+change clock cycles to machine cycles
+fix oam dma transfer

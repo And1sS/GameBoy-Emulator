@@ -35,10 +35,10 @@ private:
 	bool IME    = false;            // Interrupts enabled / disabled
 	bool halted = false;
 
-	uint8_t   regs[8];              // BC, DE, HL, AF Registers
-	uint8_t&  F = regs[F_REG];      // Flag Register
-	uint16_t  SP = 0;               // Stack Pointer
-	uint16_t  PC = 0;               // Program Counter
+	std::array<uint8_t, 8> regs;    // BC, DE, HL, AF Registers
+	uint8_t&  F = regs[F_REG];		// Flag Register
+	uint16_t  SP = 0;				// Stack Pointer
+	uint16_t  PC = 0;				// Program Counter
 
 	uint64_t  clock_cycle = 0;
 	uint8_t   phase = 0;
@@ -143,7 +143,7 @@ private:
 public:
 	CPU(Memory* mem, Timer* timer) : mem(mem), timer(timer)
 	{
-		memset(regs, 0, 8);
+		memset(regs.data(), 0, 8);
 	}
 
 	void      execute_one_cycle();			

@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <istream>
 #include <vector>
+#include <array>
 
 #include "util.h"
 
@@ -50,22 +51,35 @@ private:
 
 	enum class Type { ROM_ONLY, MBC1 };
 
-	uint8_t mem[0xFFFF];
+	std::array<uint8_t, 0x10000> mem;
 	std::vector<uint8_t> cartridge;
-	Type type;
+
+	Type    type;
+
 	uint8_t number_of_rom_banks;
 	uint8_t bank_addr_bits;
 
-	PPU*    ppu;
+	
 	Timer*  timer;
 
+	bool dma_transfer_mode = false;
+	uint8_t machine_cycles;
+
 public:
+
+	PPU* ppu; // MAKE PRIVATE
+
 	Memory();
 	Memory(std::istream& file);
 	void    set_timer(Timer* timer);
 	void    set_PPU(PPU* ppu);
 
+	void    execute_one_cycle();
+
+	bool    get_dma_transfer() const;
+
 	uint8_t read_byte(uint16_t addr) const;
+	uint8_t unchecked_read_byte(uint16_t addr) const;
 	void    write_byte(uint16_t addr, uint8_t value);
 	void    write_two_bytes(uint16_t addr, uint16_t value);
 
@@ -79,40 +93,68 @@ public:
 };
 
 
+inline void Memory::execute_one_cycle()
+{
+	if (dma_transfer_mode)
+	{
+		machine_cycles++;
+		if (machine_cycles == 160)
+			dma_transfer_mode = false;
+	}
+}
+
+
+inline bool Memory::get_dma_transfer() const
+{
+	return dma_transfer_mode;
+}
+
+inline uint8_t Memory::unchecked_read_byte(uint16_t addr) const
+{
+	return mem[addr];
+}
+
 inline uint8_t Memory::read_IO_byte(uint16_t addr)
 {
+#ifndef NDEBUG
 	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
 		throw std::invalid_argument("address should be in IO range");
+#endif
 	return mem[addr];
 }
 
 inline void Memory::write_IO_byte(uint16_t addr, uint8_t value)
 {
+#ifndef NDEBUG
 	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
 		throw std::invalid_argument("address should be in IO range");
+#endif
 	mem[addr] = value;
 }
 
 inline void Memory::set_IO_flag(uint16_t addr, uint8_t index)
 {
+#ifndef NDEBUG
 	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
 		throw std::invalid_argument("address should be in IO range");
-
+#endif
 	mem[addr] |= (1 << index);
 }
 
 inline void Memory::reset_IO_flag(uint16_t addr, uint8_t index)
 {
+#ifndef NDEBUG
 	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
 		throw std::invalid_argument("address should be in IO range");
-
+#endif
 	mem[addr] &= ~(1 << index);
 }
 
 inline bool Memory::get_IO_flag(uint16_t addr, uint8_t index)
 {
+#ifndef NDEBUG
 	if (!IN_RANGE(addr, ADDR_IO_START, ADDR_IO_END))
 		throw std::invalid_argument("address should be in IO range");
-
+#endif
 	return (mem[addr] >> index) & 1;
 }

@@ -15,15 +15,19 @@ class PPU
 public:
 	enum class Mode { H_BLANK, V_BLANK, OAM_SEARCH, PIXEL_DRAWING, DISABLED };
 
-private:
-	static constexpr size_t SPRITES_QUANTITY     = 40;
+
+	static constexpr size_t SPRITES_QUANTITY = 40;
 	static constexpr size_t MAX_SPRITES_PER_LINE = 10;
 
-	static constexpr size_t SCREEN_WIDTH         = 160;
-	static constexpr size_t SCREEN_HEIGHT        = 144;
+	static constexpr size_t SCREEN_WIDTH = 160;
+	static constexpr size_t SCREEN_HEIGHT = 144;
 
 	static constexpr uint16_t ADDR_SPRITES_DATA_START = 0x0000; // real address is 0x8000
+	
+	template<size_t size>
+	using line = std::array<uint8_t, size>;
 
+private:
 	struct Sprite
 	{
 		uint8_t y;
@@ -32,20 +36,16 @@ private:
 		uint8_t flags;
 	};
 
-	Memory*   mem;
+	Memory* mem;
 
 	Mode      mode;
 
-	uint8_t   VRAM[0x2000];
-	uint8_t   OAM[0xA0];
-
-	uint8_t   phase       = 0;
+	uint8_t   phase = 0;
 	uint8_t   max_phase;
 
-	uint8_t   background_line_pixels[SCREEN_WIDTH];
-	uint8_t   current_line_pixels[SCREEN_WIDTH];
-	uint8_t   screen_buffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-	
+	line<SCREEN_WIDTH> background_line_pixels;
+	line<SCREEN_WIDTH> current_line_pixels;
+	std::array<line<SCREEN_WIDTH>, SCREEN_HEIGHT> screen_buffer;
 
 	// here sprites are sorted in reversed order due to their priority
 	std::vector<Sprite> current_line_sorted_sprites;
@@ -68,6 +68,9 @@ private:
 	uint8_t get_colour(uint8_t palette, uint8_t index) const;
 	inline void parse_palette(uint8_t palette, uint8_t* dest) const;
 public:
+	std::array<uint8_t, 0x2000> VRAM;
+	std::array<uint8_t, 0xA0>   OAM;
+
 	PPU(Memory* mem);
 
 	void    execute_one_cycle();
@@ -79,9 +82,11 @@ public:
 
 	Mode    get_mode() const;
 
-	uint8_t (*get_screen_buffer())[160];
-};
+	auto    get_screen_buffer() -> std::array<line<SCREEN_WIDTH>, SCREEN_HEIGHT>&;
+	void    get_tile_map(std::array<line<256>, 256>& screen);
 
+	void    print_video_memory();
+};
 
 inline std::array<uint8_t, 8> PPU::bytes_to_pixel_line(uint16_t address) const
 {
@@ -89,16 +94,15 @@ inline std::array<uint8_t, 8> PPU::bytes_to_pixel_line(uint16_t address) const
 	uint8_t second = VRAM[address + 1];
 	std::array<uint8_t, 8> res;
 	for (uint8_t i = 0; i < 8; i++)
-		res[7 - i] = (GET_BIT(first, i) << 1) | GET_BIT(second, i);
+		res[7 - i] = (GET_BIT(second, i) << 1) | GET_BIT(first, i);
 	return res;
 }
 
 inline uint8_t PPU::get_pixel_from_tile(uint16_t tile_address, uint8_t x, uint8_t y) const
 {
-	uint8_t first = VRAM[tile_address + y * 2];
-	uint8_t second = VRAM[tile_address + y * 2 + 1];
+	uint16_t addr = tile_address + y * 2;
 	uint8_t bit = 7 - x;
-	return (GET_BIT(first, bit) << 1) | GET_BIT(second, bit);
+	return (GET_BIT(VRAM[addr + 1], bit) << 1) | GET_BIT(VRAM[addr], bit);
 }
 
 inline void PPU::parse_palette(uint8_t palette, uint8_t* dest) const
@@ -120,7 +124,11 @@ inline PPU::Mode PPU::get_mode() const
 	return mode;
 }
 
-inline uint8_t (*PPU::get_screen_buffer())[160]
+inline auto PPU::get_screen_buffer() -> 
+	std::array<
+		PPU::line<PPU::SCREEN_WIDTH>,
+		PPU::SCREEN_HEIGHT
+	>&
 {
 	return screen_buffer;
 }

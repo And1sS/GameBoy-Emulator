@@ -5,11 +5,11 @@
 
 Memory::Memory()
 {
-	memset(mem, 0, 0x10000);
+	memset(mem.data(), 0, 0x10000);
 }
 
 
-Memory::Memory(std::istream& file) 
+Memory::Memory(std::istream& file)
 {
 	file.seekg(0x148); // 0148 - ROM Size
 	uint8_t rom_size_flag = file.get();
@@ -27,7 +27,7 @@ Memory::Memory(std::istream& file)
 	if (ram_size_flag != 0)
 		throw std::runtime_error("external ram is not supported");
 
-	memcpy(mem, cartridge.data(), 32 * KB);
+	memcpy(mem.data(), cartridge.data(), 32 * KB);
 	uint8_t rom_type = cartridge[0x147]; // 0147 - Cartridge Type
 	if (rom_type == 0) // 00h  ROM ONLY
 	{
@@ -69,7 +69,7 @@ Memory::Memory(std::istream& file)
 		0x21, 0x04, 0x01, 0x11, 0xA8, 0x00, 0x1A, 0x13, 0xBE, 0x20, 0xFE, 0x23, 0x7D, 0xFE, 0x34, 0x20,
 		0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
 	};
-	memcpy(mem, boot_rom, 256);
+	memcpy(mem.data(), boot_rom, 256);
 }
 
 void Memory::set_timer(Timer* timer)
@@ -93,15 +93,67 @@ uint8_t Memory::read_byte(uint16_t addr) const
 
 void Memory::write_byte(uint16_t addr, uint8_t value)
 {
+	if (addr == 0xFF46)
+	{
+		if (dma_transfer_mode)
+			throw std::runtime_error("OAM transfer already running");
+		dma_transfer_mode = true;
+		machine_cycles = 0;
+		uint16_t src_addr = value * 0x100;
+		if (IN_RANGE(src_addr, ADDR_VRAM_START, ADDR_VRAM_END))
+			memcpy(ppu->OAM.data(), ppu->VRAM.data() + src_addr - ADDR_VRAM_START, 0x9f);
+		else if (IN_RANGE(src_addr, ADDR_OAM_START, ADDR_OAM_END))
+			; // do nothing
+		else
+			memcpy(ppu->OAM.data(), mem.data() + src_addr, 0x9f);
+	}
+	if (addr == 0xFF00)
+	{
+		value |= 0x0F;
+	}
 	if (addr == 0xFF50 && value == 1) // turn off boot ROM
-		memcpy(mem, cartridge.data(), 256);
+	{
+		memcpy(mem.data(), cartridge.data(), 256);
+		mem[0xFF00] = 0x0F; // JOYPAD
+		mem[0xFF05] = 0x00; // TIMA
+		mem[0xFF06] = 0x00; // TMA
+		mem[0xFF07] = 0x00; // TAC
+		mem[0xFF10] = 0x80; // NR10
+		mem[0xFF11] = 0xBF; // NR11
+		mem[0xFF12] = 0xF3; // NR12
+		mem[0xFF14] = 0xBF; // NR14
+		mem[0xFF16] = 0x3F; // NR21
+		mem[0xFF17] = 0x00; // NR22
+		mem[0xFF19] = 0xBF; // NR24
+		mem[0xFF1A] = 0x7F; // NR30
+		mem[0xFF1B] = 0xFF; // NR31
+		mem[0xFF1C] = 0x9F; // NR32
+		mem[0xFF1E] = 0xBF; // NR33
+		mem[0xFF20] = 0xFF; // NR41
+		mem[0xFF21] = 0x00; // NR42
+		mem[0xFF22] = 0x00; // NR43
+		mem[0xFF23] = 0xBF; // NR44
+		mem[0xFF24] = 0x77; // NR50
+		mem[0xFF25] = 0xF3; // NR51
+		mem[0xFF26] = 0xF1; // GB
+		mem[0xFF40] = 0x91; // LCDC
+		mem[0xFF42] = 0x00; // SCY
+		mem[0xFF43] = 0x00; // SCX
+		mem[0xFF45] = 0x00; // LYC
+		mem[0xFF47] = 0xFC; // BGP
+		mem[0xFF48] = 0xFF; // OBP0
+		mem[0xFF49] = 0xFF; // OBP1
+		mem[0xFF4A] = 0x00; // WY
+		mem[0xFF4B] = 0x00; // WX
+		mem[0xFFFF] = 0x00; // IE
+	}
 
 	if (IN_RANGE(addr, ADDR_VRAM_START, ADDR_VRAM_END))
 		return ppu->write_byte_VRAM(addr, value);
 	else if (IN_RANGE(addr, ADDR_OAM_START, ADDR_OAM_END))
 		return ppu->write_byte_OAM(addr, value);
 
-	if (addr >= ADDR_IO_DIV && addr <= ADDR_IO_TAC)
+	if (IN_RANGE(addr, ADDR_IO_DIV, ADDR_IO_TAC))
 		return timer->process_timer_IO_write(addr, value);
 
 	if (type == Type::ROM_ONLY)
@@ -119,7 +171,7 @@ void Memory::write_byte(uint16_t addr, uint8_t value)
 				uint8_t bank_number = ((value << (8 - bank_addr_bits)) & 0xFF) >> (8 - bank_addr_bits);
 				if (bank_number == 0)
 					bank_number = 1;
-				memcpy(mem + ADDR_SWITCH_BANK_START, cartridge.data() + bank_number * 16 * KB, 16 * KB);
+				memcpy(mem.data() + ADDR_SWITCH_BANK_START, cartridge.data() + bank_number * 16 * KB, 16 * KB);
 			}
 			else if (IN_RANGE(addr, 0x4000, 0x5FFF)) // 4000-5FFF - RAM Bank Number - or - Upper Bits of ROM Bank Number (Write Only)
 				;
@@ -140,5 +192,5 @@ void Memory::write_two_bytes(uint16_t addr, uint16_t value)
 
 void Memory::write_bytes(uint16_t addr, std::initializer_list<uint8_t> l)
 {
-	std::copy(l.begin(), l.end(), mem + addr);
+	std::copy(l.begin(), l.end(), mem.data() + addr);
 }

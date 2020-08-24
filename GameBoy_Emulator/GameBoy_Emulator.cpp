@@ -1,85 +1,113 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <chrono>
-#include <stdio.h>
-#include <Windows.h>
-
 #include "Memory.h"
 #include "CPU.h"
 #include "PPU.h"
 #include "Timer.h"
 
-HANDLE hConsole;
-wchar_t* screen;
-const int height = 144;
-const int width  = 160;
-long long elapsedTime;
+#define OLC_PGE_APPLICATION
+#include "olcPixelGameEngine.h"
 
-void draw_screen(PPU& ppu, CPU& cpu);
-
-int main()
+class Emulator : public olc::PixelGameEngine
 {
-	hConsole = CreateConsoleScreenBuffer(
-		GENERIC_READ | GENERIC_WRITE,
-		0, 
-		NULL,
-		CONSOLE_TEXTMODE_BUFFER,
-		NULL
-	);
-	SetConsoleActiveScreenBuffer(hConsole);
+private:
+	float fTargetFrameTime = 1.0f / 59.73f;
+	float fAccumulatedTime = 0.0f;
 
-	screen = new wchar_t[144 * 162];
+	Memory* mem;
+	Timer* timer;
+	CPU* cpu;
+	PPU* ppu;
 
-	std::ifstream in("cpu_instrs.gb", std::ios::binary);
+	PPU::Mode prev_mode = PPU::Mode::DISABLED;
 
-	Memory* mem = new Memory(in);
-	Timer timer(mem);
-	CPU cpu(mem, &timer);
-	PPU ppu(mem);
-	mem->set_timer(&timer);
-	mem->set_PPU(&ppu);
+	std::string rom_filename;
 
-	auto prev_mode = ppu.get_mode();
-	auto tp1 = std::chrono::system_clock::now();
-	auto tp2 = std::chrono::system_clock::now();
-	int k = 0;
-	while (true)
+public:
+	Emulator(std::string rom_filename) : rom_filename(rom_filename)
 	{
-		if (ppu.get_mode() == PPU::Mode::V_BLANK && prev_mode != ppu.get_mode())
-		{
-			k++;
-			if (k == 10)
-			{
-				k = 0;
-				tp2 = std::chrono::system_clock::now();
-				elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
-
-				tp1 = tp2;
-			}
-			draw_screen(ppu, cpu);
-		}
-
-		prev_mode = ppu.get_mode();
-
-		cpu.execute_one_cycle();
-		ppu.execute_one_cycle();
-		timer.execute_one_cycle();
+		sAppName = "GameBoy Emulator";
 	}
 
-	delete mem;
-}
+	bool OnUserCreate() override
+	{
+		std::ifstream in(rom_filename, std::ios::binary);
 
-void draw_screen(PPU& ppu, CPU& cpu)
+		mem = new Memory(in);
+		timer = new Timer(mem);
+		cpu = new CPU(mem, timer);
+		ppu = new PPU(mem);
+		mem->set_timer(timer);
+		mem->set_PPU(ppu);
+
+		return true;
+	}
+
+	bool OnUserUpdate(float fElapsedTime) override
+	{
+		fAccumulatedTime += fElapsedTime;
+		if (fAccumulatedTime >= fTargetFrameTime)
+		{
+			fAccumulatedTime -= fTargetFrameTime;
+			fElapsedTime = fTargetFrameTime;
+		}
+		else
+			return true; // Don't do anything this frame
+
+		while (true)
+		{
+			if (ppu->get_mode() == PPU::Mode::V_BLANK && prev_mode != ppu->get_mode())
+			{
+				prev_mode = ppu->get_mode();
+				break;
+			}
+			prev_mode = ppu->get_mode();
+
+			cpu->execute_one_cycle();
+			ppu->execute_one_cycle();
+			mem->execute_one_cycle();
+			timer->execute_one_cycle();
+
+			uint8_t byte = mem->read_IO_byte(0xFF00);
+			uint8_t result = byte;
+			if ((~byte) & (1 << 5))
+			{
+				result = (byte & 0xF0) | ~(
+					(GetKey(olc::Key::ENTER).bHeld << 3)|
+					(GetKey(olc::Key::SHIFT).bHeld << 2)|
+					(GetKey(olc::Key::A).bHeld << 1)|
+					(GetKey(olc::Key::S).bHeld));
+			}
+			else if ((~byte) & (1 << 4))
+			{
+				result = (byte & 0xF0) | ~(
+					(GetKey(olc::Key::DOWN).bHeld << 3) |
+					(GetKey(olc::Key::UP).bHeld << 2) |
+					(GetKey(olc::Key::LEFT).bHeld << 1) |
+					(GetKey(olc::Key::RIGHT).bHeld));
+			}
+			mem->write_IO_byte(0xFF00, result);
+		}
+
+		static const olc::Pixel pixels[] = { {224, 248, 208}, {136, 192, 112}, {52, 104, 86}, {8, 24, 32} };
+		const auto& screen = ppu->get_screen_buffer();
+		for (int x = 0; x < ScreenWidth(); x++)
+			for (int y = 0; y < ScreenHeight(); y++)
+				Draw(x, y, pixels[screen[y][x]]);
+		return true;
+	}
+};
+
+
+int main(int argc, char** argv)
 {
-	DWORD dwBytesWritten = 0;
-	auto screen_buffer = ppu.get_screen_buffer();
-	static wchar_t symbols[4] = { ' ', 0x2592, 0x2593, 0x2588 };
+	std::string rom_filename = "roms/cpu_instrs.gb";
+	if (argc > 1)
+		rom_filename = std::string(argv[1]);
 
-	for (int i = 0; i < height; i++)
-		for (int j = 0; j < width; j++)
-			screen[i * width + j] = symbols[screen_buffer[i][j]];
+	Emulator emulator(rom_filename);
+	if (emulator.Construct(160, 144, 4, 4))
+		emulator.Start();
 
-	swprintf(screen, 40, L"clocks=%lld, FPS=%f", cpu.get_clock_cycle(), 10000.0 / elapsedTime);
-	WriteConsoleOutputCharacter(hConsole, screen, 144 * 162, { 0,0 }, &dwBytesWritten);
+	return 0;
 }
+
+
