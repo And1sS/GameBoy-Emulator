@@ -12,6 +12,7 @@
 
 class PPU;
 class Timer;
+class Cartridge;
 
 class Memory
 {
@@ -38,37 +39,34 @@ public:
 	static constexpr uint16_t ADDR_IE = 0xFFFF;
 
 	// end addresses are inclusive
-	static constexpr uint16_t ADDR_SWITCH_BANK_START = 0x4000;
-	static constexpr uint16_t ADDR_VRAM_START = 0x8000;
-	static constexpr uint16_t ADDR_VRAM_END   = 0x9FFF;
-	static constexpr uint16_t ADDR_OAM_START  = 0xFE00;
-	static constexpr uint16_t ADDR_OAM_END    = 0xFE9F;
-	static constexpr uint16_t ADDR_IO_START   = 0xFF00;
-	static constexpr uint16_t ADDR_IO_END     = 0xFF7F;
+	static constexpr uint16_t ADDR_BANK_0_START       = 0x0000;
+	static constexpr uint16_t ADDR_BANK_0_END         = 0x3FFF;
+	static constexpr uint16_t ADDR_SWITCH_BANK_START  = 0x4000;
+	static constexpr uint16_t ADDR_SWITCH_BANK_END    = 0x7FFF;
+	static constexpr uint16_t ADDR_VRAM_START         = 0x8000;
+	static constexpr uint16_t ADDR_VRAM_END           = 0x9FFF;
+	static constexpr uint16_t ADDR_EXTERNAL_RAM_START = 0xA000;
+	static constexpr uint16_t ADDR_EXTERNAL_RAM_END   = 0xBFFF;
+	static constexpr uint16_t ADDR_OAM_START          = 0xFE00;
+	static constexpr uint16_t ADDR_OAM_END            = 0xFE9F;
+	static constexpr uint16_t ADDR_IO_START           = 0xFF00;
+	static constexpr uint16_t ADDR_IO_END             = 0xFF7F;
+
+	static std::array<uint8_t, 256> boot_rom;
 	
 private:
-	static constexpr size_t KB = 1024;
-
-	enum class Type { ROM_ONLY, MBC1 };
-
 	std::array<uint8_t, 0x10000> mem;
-	std::vector<uint8_t> cartridge;
-
-	Type    type;
-
-	uint8_t number_of_rom_banks;
-	uint8_t bank_addr_bits;
-
+	Cartridge* cartridge;
 	
 	Timer*  timer;
+	PPU*    ppu;
 
-	bool dma_transfer_mode = false;
-	uint8_t machine_cycles;
+	bool    boot_mode = true; // true before boot ROM is turned off
+	bool    dma_transfer_mode = false;
+	uint8_t machine_cycles;		// For DMA transfer only
+
 
 public:
-
-	PPU* ppu; // MAKE PRIVATE
-
 	Memory();
 	Memory(std::istream& file);
 	void    set_timer(Timer* timer);
@@ -90,6 +88,10 @@ public:
 	void    set_IO_flag(uint16_t addr, uint8_t index);
 	void    reset_IO_flag(uint16_t addr, uint8_t index);
 	bool    get_IO_flag(uint16_t addr, uint8_t index);
+
+private:
+	void    init();
+	void    init_dma_transfer(uint8_t);
 };
 
 
@@ -102,7 +104,6 @@ inline void Memory::execute_one_cycle()
 			dma_transfer_mode = false;
 	}
 }
-
 
 inline bool Memory::get_dma_transfer() const
 {
@@ -157,4 +158,41 @@ inline bool Memory::get_IO_flag(uint16_t addr, uint8_t index)
 		throw std::invalid_argument("address should be in IO range");
 #endif
 	return (mem[addr] >> index) & 1;
+}
+
+inline void Memory::init()
+{
+	boot_mode = false;
+	mem[0xFF00] = 0x0F; // JOYPAD
+	mem[0xFF05] = 0x00; // TIMA
+	mem[0xFF06] = 0x00; // TMA
+	mem[0xFF07] = 0x00; // TAC
+	mem[0xFF10] = 0x80; // NR10
+	mem[0xFF11] = 0xBF; // NR11
+	mem[0xFF12] = 0xF3; // NR12
+	mem[0xFF14] = 0xBF; // NR14
+	mem[0xFF16] = 0x3F; // NR21
+	mem[0xFF17] = 0x00; // NR22
+	mem[0xFF19] = 0xBF; // NR24
+	mem[0xFF1A] = 0x7F; // NR30
+	mem[0xFF1B] = 0xFF; // NR31
+	mem[0xFF1C] = 0x9F; // NR32
+	mem[0xFF1E] = 0xBF; // NR33
+	mem[0xFF20] = 0xFF; // NR41
+	mem[0xFF21] = 0x00; // NR42
+	mem[0xFF22] = 0x00; // NR43
+	mem[0xFF23] = 0xBF; // NR44
+	mem[0xFF24] = 0x77; // NR50
+	mem[0xFF25] = 0xF3; // NR51
+	mem[0xFF26] = 0xF1; // GB
+	mem[0xFF40] = 0x91; // LCDC
+	mem[0xFF42] = 0x00; // SCY
+	mem[0xFF43] = 0x00; // SCX
+	mem[0xFF45] = 0x00; // LYC
+	mem[0xFF47] = 0xFC; // BGP
+	mem[0xFF48] = 0xFF; // OBP0
+	mem[0xFF49] = 0xFF; // OBP1
+	mem[0xFF4A] = 0x00; // WY
+	mem[0xFF4B] = 0x00; // WX
+	mem[0xFFFF] = 0x00; // IE
 }

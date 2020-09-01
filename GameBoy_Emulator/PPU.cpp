@@ -11,27 +11,6 @@ PPU::PPU(Memory* mem) : mem(mem)
 	mode = Mode::DISABLED;
 }
 
-#include <iostream>
-#include <iomanip>
-void PPU::print_video_memory()
-{
-	/*for (int i = 0; i < VRAM.size() / 16; i++)
-	{
-		//std::cout << std::hex << Memory::ADDR_VRAM_START + i * 16 << ": ";
-		for (int j = 0; j < 16; j++)
-			std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)VRAM[i * 16 + j];// << " ";
-		//std::cout << std::endl;
-	}*/
-	/*for (int i = 0; i < OAM.size() / 16; i++)
-	{
-		//std::cout << std::hex << Memory::ADDR_OAM_START + i * 16 << ": ";
-		for (int j = 0; j < 16; j++)
-			std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)OAM[i * 16 + j];// << " ";
-		//std::cout << std::endl;
-	}
-	std::cout << "\n\n\n\n\n" << "/////////////////////////////////////////////////" << "\n\n\n\n";*/
-}
-
 void PPU::switch_mode()
 {
 	switch (mode)
