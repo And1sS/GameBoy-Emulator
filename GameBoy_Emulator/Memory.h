@@ -52,6 +52,8 @@ public:
 	static constexpr uint16_t ADDR_IO_START           = 0xFF00;
 	static constexpr uint16_t ADDR_IO_END             = 0xFF7F;
 
+	static constexpr uint16_t SIZE_OAM = 0xA0;
+
 	static std::array<uint8_t, 256> boot_rom;
 	
 private:

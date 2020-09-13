@@ -115,10 +115,17 @@ void Memory::init_dma_transfer(uint8_t value)
 	dma_transfer_mode = true;
 	machine_cycles = 0;
 	uint16_t src_addr = value * 0x100;
-	if (IN_RANGE(src_addr, ADDR_VRAM_START, ADDR_VRAM_END))
-		memcpy(ppu->OAM.data(), ppu->VRAM.data() + src_addr - ADDR_VRAM_START, 0x9f);
+	
+	if (IN_RANGE(src_addr, ADDR_BANK_0_START, ADDR_BANK_0_END))
+		memcpy(ppu->OAM.data(), cartridge->get_rom_bank_0() + src_addr - ADDR_BANK_0_START, SIZE_OAM);
+	else if (IN_RANGE(src_addr, ADDR_SWITCH_BANK_START, ADDR_SWITCH_BANK_END))
+		memcpy(ppu->OAM.data(), cartridge->get_rom_switch_bank() + src_addr - ADDR_SWITCH_BANK_START, SIZE_OAM);
+	else if (IN_RANGE(src_addr, ADDR_VRAM_START, ADDR_VRAM_END))
+		memcpy(ppu->OAM.data(), ppu->VRAM.data() + src_addr - ADDR_VRAM_START, SIZE_OAM);
+	else if (IN_RANGE(src_addr, ADDR_EXTERNAL_RAM_START, ADDR_EXTERNAL_RAM_END))
+		memcpy(ppu->OAM.data(), cartridge->get_ram() + src_addr - ADDR_EXTERNAL_RAM_START, SIZE_OAM);
 	else if (IN_RANGE(src_addr, ADDR_OAM_START, ADDR_OAM_END))
 		; // do nothing
 	else
-		memcpy(ppu->OAM.data(), mem.data() + src_addr, 0x9f);
+		memcpy(ppu->OAM.data(), mem.data() + src_addr, SIZE_OAM);
 }

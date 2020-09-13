@@ -29,14 +29,25 @@ public:
 
 	bool OnUserCreate() override
 	{
-		std::ifstream in(rom_filename, std::ios::binary);
+		try
+		{
+			std::ifstream in(rom_filename, std::ios::binary);
 
-		mem = new Memory(in);
-		timer = new Timer(mem);
-		cpu = new CPU(mem, timer);
-		ppu = new PPU(mem);
-		mem->set_timer(timer);
-		mem->set_PPU(ppu);
+			mem = new Memory(in);
+			timer = new Timer(mem);
+			cpu = new CPU(mem, timer);
+			ppu = new PPU(mem);
+			mem->set_timer(timer);
+			mem->set_PPU(ppu);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << e.what() << std::endl;
+			std::cout << "Enter any character to close" << std::endl;
+			char c;
+			std::cin >> c;
+			return false;
+		}
 
 		return true;
 	}
@@ -99,7 +110,7 @@ public:
 
 int main(int argc, char** argv)
 {
-	std::string rom_filename = "roms/cpu_instrs.gb";
+	std::string rom_filename = "roms/donkey_kong_land.gb";
 	if (argc > 1)
 		rom_filename = std::string(argv[1]);
 
