@@ -66,7 +66,7 @@ public:
             const auto& sound_buffer = apu->get_sound_buffer();
             std::copy(sound_buffer.begin() + last_read_pos, sound_buffer.end(), temp.begin());
             std::copy(sound_buffer.begin(), sound_buffer.begin() + new_pos,
-                temp.begin() + APU::BUFFER_SIZE - last_read_pos);
+                temp.begin() + (APU::BUFFER_SIZE - last_read_pos));
 
             data.sampleCount = temp.size();
             data.samples = temp.data();
@@ -124,8 +124,10 @@ int main(int argc, char** argv)
         cpu = new CPU(mem, timer);
         ppu = new PPU(mem);
         apu = new APU(mem);
+
         mem->set_timer(timer);
         mem->set_PPU(ppu);
+        mem->set_APU(apu);
     }
     catch (const std::runtime_error& e)
     {

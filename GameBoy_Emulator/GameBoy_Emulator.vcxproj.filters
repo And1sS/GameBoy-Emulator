@@ -33,6 +33,12 @@
     <ClCompile Include="APU.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Sound\ToneGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Sound\ToneGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPU.h">
@@ -53,10 +59,10 @@
     <ClInclude Include="util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="olcPixelGameEngine.h">
+    <ClInclude Include="APU.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="APU.h">
+    <ClInclude Include="Sound\Generator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

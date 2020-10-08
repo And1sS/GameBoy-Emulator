@@ -11,6 +11,7 @@
 #include "util.h"
 
 class PPU;
+class APU;
 class Timer;
 class Cartridge;
 
@@ -23,6 +24,21 @@ public:
 	static constexpr uint16_t ADDR_IO_TAC    = 0xFF07;
 
 	static constexpr uint16_t ADDR_IO_IF     = 0xFF0F;
+
+	static constexpr uint16_t ADDR_IO_NR10   = 0xFF10;
+	static constexpr uint16_t ADDR_IO_NR11   = 0xFF11;
+	static constexpr uint16_t ADDR_IO_NR12   = 0xFF12;
+	static constexpr uint16_t ADDR_IO_NR13   = 0xFF13;
+	static constexpr uint16_t ADDR_IO_NR14   = 0xFF14;
+	
+	static constexpr uint16_t ADDR_IO_NR21   = 0xFF16;
+	static constexpr uint16_t ADDR_IO_NR22   = 0xFF17;
+	static constexpr uint16_t ADDR_IO_NR23   = 0xFF18;
+	static constexpr uint16_t ADDR_IO_NR24   = 0xFF19;
+	
+	static constexpr uint16_t ADDR_IO_NR50   = 0xFF24;
+	static constexpr uint16_t ADDR_IO_NR51   = 0xFF25;
+	static constexpr uint16_t ADDR_IO_NR52   = 0xFF26;
 
 	static constexpr uint16_t ADDR_IO_LCDC   = 0xFF40;
 	static constexpr uint16_t ADDR_IO_STAT   = 0xFF41;
@@ -62,6 +78,7 @@ private:
 	
 	Timer*  timer;
 	PPU*    ppu;
+	APU*    apu;
 
 	bool    boot_mode = true; // true before boot ROM is turned off
 	bool    dma_transfer_mode = false;
@@ -73,6 +90,7 @@ public:
 	Memory(std::istream& file);
 	void    set_timer(Timer* timer);
 	void    set_PPU(PPU* ppu);
+	void    set_APU(APU* apu);
 
 	void    execute_one_cycle();
 

@@ -1,5 +1,6 @@
 #include "Memory.h"
 #include "PPU.h"
+#include "APU.h"
 #include "Timer.h"
 #include "Cartridge.h"
 
@@ -58,6 +59,11 @@ void Memory::set_PPU(PPU* ppu)
 	this->ppu = ppu;
 }
 
+void Memory::set_APU(APU* apu)
+{
+	this->apu = apu;
+}
+
 uint8_t Memory::read_byte(uint16_t addr) const
 {
 	if (boot_mode && addr < 0x100)
@@ -89,7 +95,15 @@ void Memory::write_byte(uint16_t addr, uint8_t value)
 	else if (IN_RANGE(addr, ADDR_OAM_START, ADDR_OAM_END))
 		return ppu->write_byte_OAM(addr, value);
 	else if (IN_RANGE(addr, ADDR_IO_DIV, ADDR_IO_TAC))
+	{
+		mem[addr] = value;
 		return timer->process_timer_IO_write(addr, value);
+	}
+	else if (IN_RANGE(addr, ADDR_IO_NR10, ADDR_IO_NR52))
+	{
+		mem[addr] = value;
+		return apu->process_sound_IO_write(addr, value);
+	}
 	else if (IN_RANGE(addr, ADDR_BANK_0_START, ADDR_SWITCH_BANK_END)
 		|| IN_RANGE(addr, ADDR_EXTERNAL_RAM_START, ADDR_EXTERNAL_RAM_END))
 		return cartridge->write_byte(addr, value);
