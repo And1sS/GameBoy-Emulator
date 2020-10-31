@@ -20,6 +20,9 @@ private:
     size_t last_read_pos = 0;
     APU* apu;
 
+    static constexpr double sync_rate = 0.2;
+    static constexpr size_t min_samples = 100;
+
 public:
     Stream(APU* apu) : apu(apu)
     {
@@ -28,31 +31,30 @@ public:
 
     bool onGetData(Chunk& data) override
     {
-        while (apu->get_cur_pos() == last_read_pos)
-            sf::sleep(sf::milliseconds(10));
-
         size_t cur_pos = apu->get_cur_pos();
-        int length = cur_pos - last_read_pos;
-        if (cur_pos < last_read_pos)
-            length = cur_pos + (APU::BUFFER_SIZE - last_read_pos);
+        int length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
 
-        if (length > APU::BUFFER_SIZE / 2)
+        while (length < min_samples)
         {
-            last_read_pos = cur_pos;
-
-            while (apu->get_cur_pos() == last_read_pos)
-                sf::sleep(sf::milliseconds(10));
-
+            sf::sleep(sf::milliseconds(1));
             cur_pos = apu->get_cur_pos();
-            int length = cur_pos - last_read_pos;
-            if (cur_pos < last_read_pos)
-                length = cur_pos + (APU::BUFFER_SIZE - last_read_pos);
+            length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
         }
 
-        if (length > 2000)
-            length = 2000;
-        int new_pos = (last_read_pos + length) % APU::BUFFER_SIZE;
+        if (length > sync_rate * APU::BIT_RATE)
+        {
+            last_read_pos = cur_pos;
+            length = 0;
 
+            while (length < min_samples)
+            {
+                sf::sleep(sf::milliseconds(1));
+                cur_pos = apu->get_cur_pos();
+                length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
+            }
+        }
+
+        int new_pos = (last_read_pos + length) % APU::BUFFER_SIZE;
         if (new_pos > last_read_pos)
         {
             data.sampleCount = new_pos - last_read_pos;
@@ -61,7 +63,7 @@ public:
         else
         {
             temp.clear();
-            temp.resize(new_pos + (APU::BUFFER_SIZE - last_read_pos));
+            temp.resize((new_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE);
 
             const auto& sound_buffer = apu->get_sound_buffer();
             std::copy(sound_buffer.begin() + last_read_pos, sound_buffer.end(), temp.begin());
@@ -73,6 +75,7 @@ public:
         }
 
         last_read_pos = new_pos;
+        
         return true;
     }
 
@@ -81,18 +84,29 @@ public:
 
 int main(int argc, char** argv)
 {
-    sf::RenderWindow window(sf::VideoMode(160, 144), "SFML works!");
+    std::string rom_filename = "../roms/mario_2.gb";
+    if (argc > 1)
+        rom_filename = std::string(argv[1]);
+
+    float scale = 4;
+    int width = 160;
+    int height = 144;
+
+    sf::RenderWindow window(sf::VideoMode(width * scale, height * scale), "GB emu: " + rom_filename);
     sf::Texture t;
-    std::vector<uint8_t> screen_buffer(160 * 144 * 4);
-    for (int i = 0; i < 160 * 144 * 4; i += 4)
+    std::vector<uint8_t> screen_buffer(width * height * 4);
+    for (int i = 0; i < width * height * 4; i += 4)
     {
         screen_buffer[i] = 0;
         screen_buffer[i + 1] = 0;
         screen_buffer[i + 2] = 255;
         screen_buffer[i + 3] = 255;
     }
-    t.create(160, 144);
+    t.create(width, height);
+
     sf::Sprite sprite(t);
+    sprite.setScale(sf::Vector2f(scale, scale));
+
     t.update(screen_buffer.data());
 
     sf::Clock clock;
@@ -102,10 +116,6 @@ int main(int argc, char** argv)
 
     float fTargetFrameTime = 1.0f / 59.73f;
     float fAccumulatedTime = 0.0f;
-
-    std::string rom_filename = "roms/cpu_instrs.gb";
-    if (argc > 1)
-        rom_filename = std::string(argv[1]);
 
     Memory* mem;
     Timer* timer;
@@ -143,18 +153,6 @@ int main(int argc, char** argv)
 
     while (window.isOpen())
     {
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-                window.close();
-            else if (event.type == sf::Event::Resized)
-            {
-                if (event.size.width * 1.0 / event.size.height > 160.0 / 144)
-                    ;
-            }
-        }
-
         sf::Time elapsed = clock.restart();
         elapsed_time += elapsed.asMicroseconds();
         k++;
@@ -170,6 +168,18 @@ int main(int argc, char** argv)
             fAccumulatedTime -= fTargetFrameTime;
         else
             continue; // Don't do anything this frame
+
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+                window.close();
+            else if (event.type == sf::Event::Resized)
+            {
+                if (event.size.width * 1.0 / event.size.height > 160.0 / 144)
+                    ;
+            }
+        }
 
         while (true)
         {
@@ -218,9 +228,9 @@ int main(int argc, char** argv)
         };
         
         const auto& screen = ppu->get_screen_buffer();
-        for (int x = 0; x < 160; x++)
-            for (int y = 0; y < 144; y++)
-                memcpy(screen_buffer.data() + (y * 160 + x) * 4,
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
+                memcpy(screen_buffer.data() + (y * width + x) * 4,
                     pixels + screen[y][x], sizeof(pixel));
         t.update(screen_buffer.data());
 

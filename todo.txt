@@ -1,6 +1,5 @@
 create GUI debugger
 add ei di bug
-LCDC 0 bit
 add support for larger than 1 MB MBC, external RAM and MBC1m
 add halt bug
 change clock cycles to machine cycles

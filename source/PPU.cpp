@@ -160,8 +160,14 @@ void PPU::execute_oam_search()
 
 void PPU::execute_pixel_drawing()
 {
-	draw_background();	
-	draw_window();
+	if (mem->get_IO_flag(Memory::ADDR_IO_LCDC, 0))
+	{
+		draw_background();
+		draw_window();
+	}
+	else
+		current_line_pixels.fill(0);
+	
 	background_line_pixels = current_line_pixels;
 	if (!mem->get_dma_transfer())
 		draw_sprites();

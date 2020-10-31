@@ -23,6 +23,7 @@ private:
 
 	std::array<int16_t, BUFFER_SIZE> sound_buffer;
 	std::atomic_size_t cur_pos = 0;
+
 public:
 	APU(Memory* mem);
 	void execute_one_cycle();

@@ -17,8 +17,8 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 	}
 	else if (addr == Memory::ADDR_IO_NR22)
 	{
-		envelope_level = value >> 4;			// Bit 7-4 - Initial Volume of envelope (0-0Fh) (0=No Sound)
-		envelope_direction = GET_BIT(value, 3); // Bit 3   - Envelope Direction (0=Decrease, 1=Increase)
+		envelope_initial_volume = value >> 4;				// Bit 7-4 - Initial Volume of envelope (0-0Fh) (0=No Sound)
+		envelope_direction = GET_BIT(value, 3) ? 1 : -1;	// Bit 3   - Envelope Direction (0=Decrease, 1=Increase)
 
 		// Length of 1 step = n*(1/64) seconds
 		// Bit 2-0 - Number of envelope sweep (n: 0-7) (If zero, stop envelope operation.)
@@ -38,6 +38,13 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 		// TODO: CHECK THIS 
 		////////////////////
 		turned_on = GET_BIT(value, 7);   // Bit 7 - Initial (1=Restart Sound) (Write Only);
+		if (turned_on)
+		{
+			current_volume = envelope_initial_volume;
+			accumulated_time = 0;
+			envelope_accumulated_time = 0;
+		}
+
 		infinite_sound = !GET_BIT(value, 6); // Bit 6 - Counter/consecutive selection (Read/Write) (1 = Stop output when length in NR21 expires)
 
 		// Bit 2-0 - Frequency's higher 3 bits (x) (Write Only)
@@ -48,9 +55,10 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 	}
 }
 
-int16_t ToneGenerator::get_sample(double elapsed_time)
+int16_t ToneGenerator::generate_sample(double elapsed_time)
 {
-	Generator::get_sample(elapsed_time);
+	update_time(elapsed_time);
+	envelope_accumulated_time += elapsed_time;
 
 	if (!infinite_sound && accumulated_time > sound_length)
 	{
@@ -59,6 +67,17 @@ int16_t ToneGenerator::get_sample(double elapsed_time)
 
 		return 0;
 	}
+
+	if (envelope_step != 0)
+		while (envelope_accumulated_time >= envelope_step)
+		{
+			current_volume += envelope_direction;
+			if (current_volume > 15)
+				current_volume = 15;
+			else if (current_volume < 0)
+				current_volume = 0;
+			envelope_accumulated_time -= envelope_step;
+		}
 
 	uint8_t sound_bit_index = fmod(accumulated_time, period) / period * 8;
 	int16_t sample = GET_BIT(sound_data[duty], sound_bit_index) * current_volume * 1000;

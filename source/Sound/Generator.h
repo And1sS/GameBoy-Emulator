@@ -9,14 +9,17 @@ private:
 protected:
 	double accumulated_time = 0;
 
-public:
-	virtual int16_t get_sample(double elapsed_time) 
+	void update_time(double elapsed_time)
 	{
 		accumulated_time += elapsed_time;
 		if (accumulated_time > MAX_TIME)
 			accumulated_time -= MAX_TIME;
-		return 0;
-	};
+	}
+
+public:
+
+	// every child class should call update_time
+	virtual int16_t generate_sample(double elapsed_time) { return 0; };
 
 	virtual void process_sound_IO_write(uint16_t addr, uint8_t value) = 0;
 
