@@ -8,7 +8,8 @@ APU::APU(Memory* mem) : mem(mem)
     for (uint8_t i = 0; i < 4; i++) 
         generators[i] = std::make_unique<MockedGenerator>();
 
-    generators[1] = std::make_unique<ToneGenerator>();
+    generators[0] = std::make_unique<ToneGenerator>(true);
+    generators[1] = std::make_unique<ToneGenerator>(false);
 };
 
 void APU::process_sound_IO_write(uint16_t addr, uint8_t value)
@@ -21,8 +22,6 @@ void APU::process_sound_IO_write(uint16_t addr, uint8_t value)
 
 void APU::execute_one_cycle()
 {
-    static float phase = 0;
-    static constexpr int w = 5000;
     current_time += TIME_STEP;
 
 	while (current_time > SOUND_STEP) 
@@ -33,11 +32,7 @@ void APU::execute_one_cycle()
         for (const auto& generator : generators)
             sample_sum += generator->generate_sample(SOUND_STEP) / 4;
            
-
-        sound_buffer[(cur_pos + 1) % sound_buffer.size()] = sample_sum; // 2000 * sin(phase);
-        //phase += w * SOUND_STEP;
-        //if (phase > 2 * 3.1415)
-        //    phase -= 2 * 3.1415;
+        sound_buffer[cur_pos] = sample_sum;
         cur_pos = (cur_pos + 1) % sound_buffer.size();
 	}
 }

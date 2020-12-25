@@ -54,32 +54,35 @@ public:
             }
         }
 
-        int new_pos = (last_read_pos + length) % APU::BUFFER_SIZE;
-        if (new_pos > last_read_pos)
+
+        if (cur_pos > last_read_pos)
         {
-            data.sampleCount = new_pos - last_read_pos;
+            data.sampleCount = length;
             data.samples = apu->get_sound_buffer().data() + last_read_pos;
         }
         else
         {
             temp.clear();
-            temp.resize((new_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE);
+            temp.resize(length);
 
             const auto& sound_buffer = apu->get_sound_buffer();
             std::copy(sound_buffer.begin() + last_read_pos, sound_buffer.end(), temp.begin());
-            std::copy(sound_buffer.begin(), sound_buffer.begin() + new_pos,
+            std::copy(sound_buffer.begin(), sound_buffer.begin() + cur_pos,
                 temp.begin() + (APU::BUFFER_SIZE - last_read_pos));
 
             data.sampleCount = temp.size();
             data.samples = temp.data();
         }
 
-        last_read_pos = new_pos;
+        last_read_pos = cur_pos;
         
         return true;
     }
 
-    void onSeek(sf::Time timeOffset) override {}
+    void onSeek(sf::Time timeOffset) override
+    {
+        std::cout << "onSeek method of SoundStream called" << std::endl;
+    }
 };
 
 int main(int argc, char** argv)

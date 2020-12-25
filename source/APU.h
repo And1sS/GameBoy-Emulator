@@ -11,9 +11,9 @@ class APU
 {
 public:
 	static constexpr size_t BIT_RATE = 44100;
-	static constexpr size_t BUFFER_SIZE = 3 * BIT_RATE;
+	static constexpr size_t BUFFER_SIZE = 10 * BIT_RATE;
 	static constexpr double TIME_STEP = 1.0 / 1048576;
-	static constexpr double SOUND_STEP = 1.0 / 44100;
+	static constexpr double SOUND_STEP = 1.0 / BIT_RATE;
 
 private:
 	Memory* mem;

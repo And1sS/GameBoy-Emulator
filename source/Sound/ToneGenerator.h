@@ -10,6 +10,13 @@
 class ToneGenerator: public Generator
 {
 private:
+	const bool sweep_enabled;
+
+	double  sweep_step = 0.0;
+	int8_t  sweep_direction = 1; // 1 - increase, -1 - decrease
+	uint8_t sweep_shift = 0;
+	double  sweep_accumulated_time = 0;
+
 	uint8_t duty = 0;
 	double  sound_length = 1.0 / 256;
 
@@ -28,7 +35,10 @@ private:
 
 	static const std::array<uint8_t, 4> sound_data;
 
+	void calculate_period();
+
 public:
+	ToneGenerator(bool sweep_enabled);
 	void process_sound_IO_write(uint16_t addr, uint8_t value) override;
 
 	int16_t generate_sample(double elapsed_time) override;
