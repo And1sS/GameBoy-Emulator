@@ -2,14 +2,17 @@
 #include "Memory.h"
 #include "Sound\Generator.h"
 #include "Sound\ToneGenerator.h"
+#include "Sound\NoiseGenerator.h"
 
 APU::APU(Memory* mem) : mem(mem)
 {
-    for (uint8_t i = 0; i < 4; i++) 
-        generators[i] = std::make_unique<MockedGenerator>();
-
-    generators[0] = std::make_unique<ToneGenerator>(true);
-    generators[1] = std::make_unique<ToneGenerator>(false);
+    generators = 
+    {
+        std::make_unique<ToneGenerator>(true),
+        std::make_unique<ToneGenerator>(false),
+        std::make_unique<MockedGenerator>(),
+        std::make_unique<NoiseGenerator>() 
+    };
 };
 
 void APU::process_sound_IO_write(uint16_t addr, uint8_t value)

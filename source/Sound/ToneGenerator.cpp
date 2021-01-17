@@ -1,5 +1,9 @@
+#include <cmath>
+
 #include "ToneGenerator.h"
+#include "..\util.h"
 #include "..\Memory.h"
+
 
 const std::array<uint8_t, 4> ToneGenerator::sound_data = 
 	{ 0b00000001, 0b00000011, 0b00001111, 0b00111111 };
@@ -59,7 +63,8 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 			envelope_accumulated_time = 0;
 		}
 
-		infinite_sound = !GET_BIT(value, 6); // Bit 6 - Counter/consecutive selection (Read/Write) (1 = Stop output when length in NR21 expires)
+		infinite_sound = !GET_BIT(value, 6); // Bit 6 - Counter/consecutive selection (Read/Write)
+		                                     // (1 = Stop output when length in NR21 expires)
 
 		// Bit 2-0 - Frequency's higher 3 bits (x) (Write Only)
 		frequency_specifier = (frequency_specifier & 0xFF) | ((value & 0b111) << 8);
@@ -74,8 +79,8 @@ int16_t ToneGenerator::generate_sample(double elapsed_time)
 		return 0;
 
 	update_time(elapsed_time);
-	sweep_accumulated_time += elapsed_time;
 	envelope_accumulated_time += elapsed_time;
+	sweep_accumulated_time    += elapsed_time;
 
 	if (!infinite_sound && accumulated_time > sound_length)
 	{

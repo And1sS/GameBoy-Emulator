@@ -35,6 +35,11 @@ public:
 	static constexpr uint16_t ADDR_IO_NR22   = 0xFF17;
 	static constexpr uint16_t ADDR_IO_NR23   = 0xFF18;
 	static constexpr uint16_t ADDR_IO_NR24   = 0xFF19;
+
+	static constexpr uint16_t ADDR_IO_NR41   = 0xFF20;
+	static constexpr uint16_t ADDR_IO_NR42   = 0xFF21;
+	static constexpr uint16_t ADDR_IO_NR43   = 0xFF22;
+	static constexpr uint16_t ADDR_IO_NR44   = 0xFF23;
 	
 	static constexpr uint16_t ADDR_IO_NR50   = 0xFF24;
 	static constexpr uint16_t ADDR_IO_NR51   = 0xFF25;

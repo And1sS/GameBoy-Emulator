@@ -1,11 +1,8 @@
 #pragma once
 
-#include <cmath>
 #include <array>
 
 #include "Generator.h"
-
-#include "..\util.h"
 
 class ToneGenerator: public Generator
 {
