@@ -18,7 +18,7 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 	if (addr == Memory::ADDR_IO_NR10 && sweep_enabled)
 	{
 		sweep_step = ((value >> 4) & 0b111) / 128.0; // Bit 6-4 - Sweep Time
-		sweep_direction = GET_BIT(value, 3) ? 1 : -1; //Bit 3 - Sweep Increase / Decrease: 0: Addition, 1 : Subtraction
+		sweep_direction = GET_BIT(value, 3) ? -1 : 1; // Bit 3 - Sweep Increase / Decrease: 0: Addition, 1 : Subtraction
 		sweep_shift = value & 0b111; // Bit 2-0 - Number of sweep shift (n: 0-7)
 	}
 	if (addr == Memory::ADDR_IO_NR11 || addr == Memory::ADDR_IO_NR21)

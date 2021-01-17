@@ -15,14 +15,14 @@
 class Stream : public sf::SoundStream
 {
 private:
-    std::vector<int16_t> temp;
+    static constexpr double sync_rate = 0.1;
+    static constexpr double samples_count_sec = 0.017;
+    static constexpr size_t samples_count = sync_rate * APU::BIT_RATE;
 
     size_t last_read_pos = 0;
     APU* apu;
 
-    static constexpr double sync_rate = 0.2;
-    static constexpr size_t min_samples = 100;
-
+    std::array<int16_t, samples_count> temp = {0};
 public:
     Stream(APU* apu) : apu(apu)
     {
@@ -32,49 +32,33 @@ public:
     bool onGetData(Chunk& data) override
     {
         size_t cur_pos = apu->get_cur_pos();
-        int length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
+        int available_length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
 
-        while (length < min_samples)
+        while (available_length < samples_count)
         {
-            sf::sleep(sf::milliseconds(1));
+            sf::sleep(sf::milliseconds(2));
             cur_pos = apu->get_cur_pos();
-            length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
+            available_length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
         }
 
-        if (length > sync_rate * APU::BIT_RATE)
-        {
-            last_read_pos = cur_pos;
-            length = 0;
+        if (available_length > sync_rate * APU::BIT_RATE)
+            last_read_pos = (cur_pos - samples_count + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
 
-            while (length < min_samples)
-            {
-                sf::sleep(sf::milliseconds(1));
-                cur_pos = apu->get_cur_pos();
-                length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
-            }
-        }
-
-
-        if (cur_pos > last_read_pos)
-        {
-            data.sampleCount = length;
-            data.samples = apu->get_sound_buffer().data() + last_read_pos;
-        }
+        const size_t new_last_read_pos = (last_read_pos + samples_count) % APU::BUFFER_SIZE;
+        const auto& sound_buffer = apu->get_sound_buffer();
+        if (new_last_read_pos > last_read_pos)
+            std::copy(sound_buffer.begin() + last_read_pos, sound_buffer.begin() + new_last_read_pos, temp.begin());
         else
-        {
-            temp.clear();
-            temp.resize(length);
-
-            const auto& sound_buffer = apu->get_sound_buffer();
+        {     
             std::copy(sound_buffer.begin() + last_read_pos, sound_buffer.end(), temp.begin());
-            std::copy(sound_buffer.begin(), sound_buffer.begin() + cur_pos,
+            std::copy(sound_buffer.begin(), sound_buffer.begin() + new_last_read_pos,
                 temp.begin() + (APU::BUFFER_SIZE - last_read_pos));
-
-            data.sampleCount = temp.size();
-            data.samples = temp.data();
         }
+        
+        data.sampleCount = samples_count;
+        data.samples = temp.data();
 
-        last_read_pos = cur_pos;
+        last_read_pos = new_last_read_pos;
         
         return true;
     }
