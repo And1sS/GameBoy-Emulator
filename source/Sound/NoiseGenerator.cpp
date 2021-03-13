@@ -25,7 +25,7 @@ void NoiseGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 	{
 		uint8_t s = (value >> 4) & 0b1111;          // Bit 7-4 - Shift Clock Frequency (s)
 		counter_width = GET_BIT(value, 3) ? 7 : 15; // Bit 3 - Counter Step / Width (0 = 15 bits, 1 = 7 bits)
-		double r = value & 0b111;                  // Bit 2-0 - Dividing Ratio of Frequencies (r)
+		double r = value & 0b111;                   // Bit 2-0 - Dividing Ratio of Frequencies (r)
 
 		if (r == 0)
 			r = 0.5;
@@ -38,7 +38,7 @@ void NoiseGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 		if (turned_on)
 		{
 			current_volume = envelope_initial_volume;
-			accumulated_time = 0;
+			double  sound_length_accumulated_time = 0;
 			envelope_accumulated_time = 0;
 		}
 
@@ -52,16 +52,20 @@ int16_t NoiseGenerator::generate_sample(double elapsed_time)
 	if (!turned_on)
 		return 0;
 
-	update_time(elapsed_time);
+	sound_length_accumulated_time += elapsed_time;
 	envelope_accumulated_time += elapsed_time;
 	shift_accumulated_time    += elapsed_time;
 
-	if (!infinite_sound && accumulated_time > sound_length)
+	if (!infinite_sound)
 	{
-		accumulated_time = 0;
-		turned_on = false;
+		sound_length_accumulated_time += elapsed_time;
+		if (sound_length_accumulated_time > sound_length)
+		{
+			sound_length_accumulated_time = 0;
+			turned_on = false;
 
-		return 0;
+			return 0;
+		}
 	}
 
 	if (envelope_step != 0)

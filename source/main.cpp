@@ -17,7 +17,7 @@ class Stream : public sf::SoundStream
 private:
     static constexpr double sync_rate = 0.1;
     static constexpr double samples_count_sec = 0.017;
-    static constexpr size_t samples_count = sync_rate * APU::BIT_RATE;
+    static constexpr size_t samples_count = samples_count_sec * APU::BIT_RATE;
 
     size_t last_read_pos = 0;
     APU* apu;
@@ -36,13 +36,18 @@ public:
 
         while (available_length < samples_count)
         {
+           //std::cout << "sleep" << std::endl;
+
             sf::sleep(sf::milliseconds(2));
             cur_pos = apu->get_cur_pos();
             available_length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
         }
 
         if (available_length > sync_rate * APU::BIT_RATE)
+        {
+            std::cout << "skip";
             last_read_pos = (cur_pos - samples_count + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
+        }
 
         const size_t new_last_read_pos = (last_read_pos + samples_count) % APU::BUFFER_SIZE;
         const auto& sound_buffer = apu->get_sound_buffer();
@@ -71,7 +76,7 @@ public:
 
 int main(int argc, char** argv)
 {
-    std::string rom_filename = "../roms/mario_2.gb";
+    std::string rom_filename = "../roms/mario_4.gb";
     if (argc > 1)
         rom_filename = std::string(argv[1]);
 
@@ -160,7 +165,10 @@ int main(int argc, char** argv)
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
+            {
+                stream.pause();
                 window.close();
+            }
             else if (event.type == sf::Event::Resized)
             {
                 if (event.size.width * 1.0 / event.size.height > 160.0 / 144)
@@ -226,4 +234,10 @@ int main(int argc, char** argv)
         window.draw(sprite);
         window.display();
     }
+
+    delete apu;
+    delete ppu;
+    delete cpu;
+    delete timer;
+    delete mem;
 }
