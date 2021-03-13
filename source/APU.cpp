@@ -12,7 +12,7 @@ APU::APU(Memory* mem) : mem(mem)
 {
     generators =
     {
-        std::make_unique<MockedGenerator>(),
+        std::make_unique<ToneGenerator>(true),
         std::make_unique<ToneGenerator>(false),
         std::make_unique<MockedGenerator>(),
         std::make_unique<MockedGenerator>()
@@ -21,11 +21,17 @@ APU::APU(Memory* mem) : mem(mem)
 
 void APU::process_sound_IO_write(uint16_t addr, uint8_t value)
 {
-    if (IN_RANGE(addr, Memory::ADDR_IO_NR50, Memory::ADDR_IO_NR52))
+    size_t generator_index;
+    if (IN_RANGE(addr, Memory::ADDR_IO_NR10, Memory::ADDR_IO_NR14))
+        generator_index = 0;
+    else if (IN_RANGE(addr, Memory::ADDR_IO_NR21, Memory::ADDR_IO_NR24))
+        generator_index = 1;
+    else if (IN_RANGE(addr, Memory::ADDR_IO_NR41, Memory::ADDR_IO_NR44))
+        generator_index = 3;
+    else
         return;
 
-    // integer division used on purpose
-    generators[(addr - Memory::ADDR_IO_NR10) / 5]->process_sound_IO_write(addr, value); 
+    generators[generator_index]->process_sound_IO_write(addr, value); 
 }
 
 void APU::execute_one_cycle()

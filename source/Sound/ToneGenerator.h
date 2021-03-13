@@ -58,12 +58,9 @@ inline void ToneGenerator::handle_sweep(double elapsed_time)
 	{
 		sweep_accumulated_time -= sweep_step;
 		frequency_specifier += sweep_direction * (frequency_specifier >> sweep_shift);
-		if (frequency_specifier < 0 || frequency_specifier > 2047)
+		if (frequency_specifier > 2047)
 		{
-			if (frequency_specifier < 0)
-				frequency_specifier = 0;
-			else
-				frequency_specifier = 2047;
+			frequency_specifier = 2047;
 			turned_on = false;
 		}
 		calculate_frequency();
@@ -93,8 +90,9 @@ inline int16_t ToneGenerator::_generate_sample(double elapsed_time)
 		wdt_rotation = Mat2(2 * PI * frequency * elapsed_time);
 	}
 
-	constexpr std::array<Vec2, 20> fourier_coefs =
-	{ Vec2(0, 1.27323954f), Vec2(0, 0),
+	static constexpr std::array<Vec2, 20> fourier_coefs =
+	{
+	  Vec2(0, 1.27323954f), Vec2(0, 0),
 	  Vec2(0, 0.42441318f), Vec2(0, 0),
 	  Vec2(0, 0.25464790f), Vec2(0, 0),
 	  Vec2(0, 0.18189136f), Vec2(0, 0),
@@ -105,7 +103,7 @@ inline int16_t ToneGenerator::_generate_sample(double elapsed_time)
 	  Vec2(0, 0.07489644f), Vec2(0, 0),
 	  Vec2(0, 0.06701260f), Vec2(0, 0),
 	};
-	constexpr size_t N = 20;
+	static constexpr size_t N = 20;
 
 	wdt_rotation.mul(wt);
 
