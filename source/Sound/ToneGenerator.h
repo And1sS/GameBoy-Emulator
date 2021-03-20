@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <memory>
 
 #include "Generator.h"
 #include "SoundMath.h"
@@ -9,12 +10,11 @@
 class ToneGenerator: public Generator
 {
 public:
-	ToneGenerator(bool sweep_enabled);
+	ToneGenerator(APU* apu, uint8_t number, bool sweep_enabled);
 	void process_sound_IO_write(uint16_t addr, uint8_t value) override;
 
 	int16_t generate_sample(double elapsed_time) override;
 private:
-	double  sound_length_accumulated_time = 0;
 	double  sweep_accumulated_time = 0;
 	double  envelope_accumulated_time = 0;
 
@@ -23,8 +23,7 @@ private:
 	int8_t  sweep_direction = 1; // 1 - increase, -1 - decrease
 	uint8_t sweep_shift = 0;
 
-	uint8_t duty = 0;
-	double  sound_length = 1.0 / 256;
+	uint8_t duty = 2;
 
 	uint8_t envelope_initial_volume = 0;
 	int8_t  envelope_direction = -1; // 1 - increase, -1 - decrease
@@ -35,15 +34,16 @@ private:
 	uint16_t frequency_specifier = 1792; // x; frequency = 131072/(2048-x) Hz
 	double   frequency = 131072.0 / (2048 - 1792);
 
-	// flags
-	bool infinite_sound = true;
-	bool turned_on = false;
-	bool frequecy_changed = true;
-	int16_t counter = 0;
+	bool frequency_changed = true;
 
-	// math
-	Vec2 wt = Vec2(1, 0); // unit vector containing cosine and sine of phase
-	Mat2 wdt_rotation = Mat2(0);
+	static constexpr size_t fourier_harmonics = 20;
+	std::array<std::unique_ptr<FourierGeneratorBase>, 4> fourier_generators =
+	{
+		std::make_unique<FourierGenerator<fourier_harmonics, 0.125f>>(),
+		std::make_unique<FourierGenerator<fourier_harmonics, 0.25f>>(),
+		std::make_unique<FourierGenerator<fourier_harmonics, 0.5f>>(),
+		std::make_unique<FourierGenerator<fourier_harmonics, 0.75f>>()
+	};
 
 	void calculate_frequency();
 	void handle_sweep(double elapsed_time);
@@ -84,43 +84,13 @@ inline void ToneGenerator::handle_envelope(double elapsed_time)
 // elapsed_time is assumed to be constant
 inline int16_t ToneGenerator::_generate_sample(double elapsed_time)
 {
-	if (frequecy_changed)
+	if (frequency_changed)
 	{
-		frequecy_changed = false;
-		wdt_rotation = Mat2(2 * PI * frequency * elapsed_time);
+		frequency_changed = false;
+		fourier_generators[duty]->update_frequency(2 * PI * frequency);
 	}
 
-	static constexpr std::array<Vec2, 20> fourier_coefs =
-	{
-	  Vec2(0, 1.27323954f), Vec2(0, 0),
-	  Vec2(0, 0.42441318f), Vec2(0, 0),
-	  Vec2(0, 0.25464790f), Vec2(0, 0),
-	  Vec2(0, 0.18189136f), Vec2(0, 0),
-	  Vec2(0, 0.14147106f), Vec2(0, 0),
-	  Vec2(0, 0.11574904f), Vec2(0, 0),
-	  Vec2(0, 0.09794150f), Vec2(0, 0),
-	  Vec2(0, 0.08488263f), Vec2(0, 0),
-	  Vec2(0, 0.07489644f), Vec2(0, 0),
-	  Vec2(0, 0.06701260f), Vec2(0, 0),
-	};
-	static constexpr size_t N = 20;
-
-	wdt_rotation.mul(wt);
-
-	Vec2 nwt(wt);
-	Mat2 wt_rotation(wt);
-	float sample = 0;
-	for (size_t i = 0; i < N - 1; i++)
-	{
-		sample += fourier_coefs[i] * nwt;
-		wt_rotation.mul(nwt);
-	}
-	sample += fourier_coefs[N - 1] * nwt;
-
-	counter++;
-	if (counter % 10000 == 0)
-		wt.normalize();
-
+	float sample = fourier_generators[duty]->generate_sample(elapsed_time);
 	sample *= current_volume * 1000;
 	return sample;
 }

@@ -4,7 +4,7 @@ project(GameBoy-Emulator)
 
 set(CMAKE_CXX_STANDARD 20)
 set(SFML_STATIC_LIBRARIES true)
-set(SFML_DIR E:/SFML-2.5.1/lib/cmake/SFML)
+set(SFML_DIR E:/Dev/Libs/SFML-2.5.1/lib/cmake/SFML)
 
 file(GLOB HEADERS CONFIGURE_DEPENDS *.h)
 file(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)

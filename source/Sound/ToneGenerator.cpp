@@ -1,16 +1,17 @@
 #include <cmath>
 
 #include "ToneGenerator.h"
+#include "..\APU.h"
 #include "..\Memory.h"
 
-ToneGenerator::ToneGenerator(bool sweep_enabled) : sweep_enabled(sweep_enabled) 
+ToneGenerator::ToneGenerator(APU* apu, uint8_t number, bool sweep_enabled) : Generator(apu, number), sweep_enabled(sweep_enabled)
 { }
 
 void ToneGenerator::calculate_frequency()
 {
 	// Frequency = 131072/(2048-x) Hz (frequency_specifier == x)
 	frequency = 131072 / (2048 - frequency_specifier);
-	frequecy_changed = true;
+	frequency_changed = true;
 }
 
 void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
@@ -23,7 +24,13 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 	}
 	else if (addr == Memory::ADDR_IO_NR11 || addr == Memory::ADDR_IO_NR21)
 	{
+		int8_t old_duty = duty;
 		duty = value >> 6; // Bit 7-6 - Wave Pattern Duty (Read/Write)
+		if (duty != old_duty)
+		{
+			fourier_generators[duty]->reset();
+			frequency_changed = true;
+		}
 
 		// Sound Length = (64-t1)*(1/256) seconds The Length value is used only if Bit 6 in NR24 is set.
 		// Bit 5 - 0 - Sound length data(Write Only) (t1: 0 - 63)
@@ -57,6 +64,8 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 			sound_length_accumulated_time = 0;
 			sweep_accumulated_time = 0;
 			envelope_accumulated_time = 0;
+
+			apu->update_generator_status(number, true);
 		}
 
 		infinite_sound = !GET_BIT(value, 6); // Bit 6 - Counter/consecutive selection (Read/Write)
@@ -74,19 +83,10 @@ int16_t ToneGenerator::generate_sample(double elapsed_time)
 	if (!turned_on)
 		return 0;
 
-	if (!infinite_sound)
-	{
-		sound_length_accumulated_time += elapsed_time;
-		if (sound_length_accumulated_time > sound_length)
-		{
-			sound_length_accumulated_time = 0;
-			turned_on = false;
+	if (!handle_sound_length(elapsed_time))
+		return 0;
 
-			return 0;
-		}
-	}
-
-	if (sweep_step != 0.0)
+	if (sweep_step != 0)
 		handle_sweep(elapsed_time);
 
 	if (envelope_step != 0)

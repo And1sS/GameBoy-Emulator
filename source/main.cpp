@@ -36,18 +36,13 @@ public:
 
         while (available_length < samples_count)
         {
-           //std::cout << "sleep" << std::endl;
-
             sf::sleep(sf::milliseconds(2));
             cur_pos = apu->get_cur_pos();
             available_length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
         }
 
         if (available_length > sync_rate * APU::BIT_RATE)
-        {
-            std::cout << "skip";
             last_read_pos = (cur_pos - samples_count + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
-        }
 
         const size_t new_last_read_pos = (last_read_pos + samples_count) % APU::BUFFER_SIZE;
         const auto& sound_buffer = apu->get_sound_buffer();
@@ -76,7 +71,7 @@ public:
 
 int main(int argc, char** argv)
 {
-    std::string rom_filename = "../roms/mario_4.gb";
+    std::string rom_filename = "Roms/mario_4.gb";
     if (argc > 1)
         rom_filename = std::string(argv[1]);
 
@@ -120,6 +115,11 @@ int main(int argc, char** argv)
     try
     {
         std::ifstream in(rom_filename, std::ios::binary);
+        if (!in.is_open())
+        {
+            std::cout << "Cannot open rom file" << std::endl;
+            return 0;
+        }
 
         mem = new Memory(in);
         timer = new Timer(mem);

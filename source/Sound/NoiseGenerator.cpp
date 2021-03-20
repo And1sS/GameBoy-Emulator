@@ -4,6 +4,8 @@
 #include "..\util.h"
 #include "..\Memory.h"
 
+NoiseGenerator::NoiseGenerator(APU* apu, uint8_t number) : Generator(apu, number) {}
+
 void NoiseGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 {
 	if (addr == Memory::ADDR_IO_NR41)
@@ -56,17 +58,8 @@ int16_t NoiseGenerator::generate_sample(double elapsed_time)
 	envelope_accumulated_time += elapsed_time;
 	shift_accumulated_time    += elapsed_time;
 
-	if (!infinite_sound)
-	{
-		sound_length_accumulated_time += elapsed_time;
-		if (sound_length_accumulated_time > sound_length)
-		{
-			sound_length_accumulated_time = 0;
-			turned_on = false;
-
-			return 0;
-		}
-	}
+	if (!handle_sound_length(elapsed_time))
+		return 0;
 
 	if (envelope_step != 0)
 		while (envelope_accumulated_time >= envelope_step)

@@ -4,6 +4,12 @@
 
 class NoiseGenerator: public Generator
 {
+public:
+	NoiseGenerator(APU* apu, uint8_t number);
+
+	void process_sound_IO_write(uint16_t addr, uint8_t value) override;
+
+	int16_t generate_sample(double elapsed_time) override;
 private:
 	double  sound_length_accumulated_time = 0;
 
@@ -23,9 +29,4 @@ private:
 
 	bool infinite_sound = true;
 	bool turned_on = false;
-
-public:
-	void process_sound_IO_write(uint16_t addr, uint8_t value) override;
-
-	int16_t generate_sample(double elapsed_time) override;
 };
