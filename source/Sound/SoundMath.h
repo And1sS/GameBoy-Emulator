@@ -51,27 +51,6 @@ public:
 	}
 };
 
-namespace
-{
-
-	constexpr auto fourier_coef(size_t i, float duty)
-	{
-		return Vec2(1.0f / PI / (i + 1) * gcem::sin(2 * PI * (i + 1) * duty),
-			1.0f / PI / (i + 1) * (1 - gcem::cos(2 * PI * (i + 1) * duty)));
-	}
-
-	template <std::size_t... i>
-	constexpr auto _generate_fourier_coefs(std::index_sequence<i...>, float duty)
-	{
-		return std::array<Vec2, sizeof...(i)>{ fourier_coef(i, duty)... };
-	}
-
-	template <std::size_t N>
-	constexpr auto generate_fourier_coefs(float duty)
-	{
-		return _generate_fourier_coefs(std::make_index_sequence<N>(), duty);
-	}
-}
 
 class FourierGeneratorBase
 {
@@ -83,6 +62,18 @@ public:
 		return 0;
 	}
 	virtual ~FourierGeneratorBase() {};
+protected:
+	template <std::size_t N>
+	static constexpr auto generate_fourier_coefs(float duty)
+	{
+		std::array<Vec2, N> res;
+		for (size_t i = 0; i < N; i++)
+		{
+			res[i] = Vec2(1.0f / PI / (i + 1) * gcem::sin(2 * PI * (i + 1) * duty),
+				1.0f / PI / (i + 1) * (1 - gcem::cos(2 * PI * (i + 1) * duty)));
+		}
+		return res;
+	}
 };
 
 template <size_t N, float duty>

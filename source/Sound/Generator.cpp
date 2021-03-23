@@ -18,4 +18,5 @@ bool Generator::handle_sound_length(double elapsed_time)
 			return false;
 		}
 	}
+	return true;
 }
