@@ -20,7 +20,7 @@ Memory::Memory(std::istream& file)
 	uint8_t rom_size_flag = file.get();
 	if (rom_size_flag > 8)
 		throw std::runtime_error("unsupported rom size");
-	size_t rom_size = (32 * KB) << rom_size_flag;
+	size_t rom_size = 32_KB << rom_size_flag;
 
 	std::vector<uint8_t> data(rom_size);
 	file.seekg(0);

@@ -7,3 +7,6 @@
 #ifndef GET_BIT
 #define GET_BIT(VAL, IDX) (((VAL) >> (IDX)) & 1)
 #endif // !GET_BIT
+
+using ull = unsigned long long;
+ull operator "" _KB(ull val);

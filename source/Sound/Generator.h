@@ -16,14 +16,14 @@ public:
 	virtual ~Generator() {};
 
 protected:
-	APU* apu;
+	APU*    apu;
 	uint8_t number;
 
 	double  sound_length_accumulated_time = 0;
 	double  sound_length = 1.0 / 256;
 
-	bool infinite_sound = true;
-	bool turned_on = false;
+	bool    infinite_sound = true;
+	bool    turned_on = false;
 
 	bool handle_sound_length(double elapsed_time);
 };

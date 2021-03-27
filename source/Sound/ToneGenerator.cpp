@@ -32,8 +32,8 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 			frequency_changed = true;
 		}
 
-		// Sound Length = (64-t1)*(1/256) seconds The Length value is used only if Bit 6 in NR24 is set.
-		// Bit 5 - 0 - Sound length data(Write Only) (t1: 0 - 63)
+		// Sound Length = (64-t1)*(1/256) seconds The Length value is used only if Bit 6 in NR14/NR24 is set.
+		// Bit 5 - 0 - Sound length data (Write Only) (t1: 0 - 63)
 		sound_length = (64 - (value & 0b111111)) / 256.0;
 		sound_length_accumulated_time = 0;
 	}
@@ -48,7 +48,7 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 	}
 	else if (addr == Memory::ADDR_IO_NR13 || addr == Memory::ADDR_IO_NR23)
 	{
-		// Frequency's lower 8 bits of 11 bit data (x). Next 3 bits are in NR24 ($FF19)
+		// Frequency's lower 8 bits of 11 bit data (x). Next 3 bits are in NR14/NR24
 		frequency_specifier = (frequency_specifier & (0b111 << 8)) | value;
 
 		calculate_frequency();

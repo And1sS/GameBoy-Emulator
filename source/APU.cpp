@@ -3,6 +3,7 @@
 #include "Sound\Generator.h"
 #include "Sound\ToneGenerator.h"
 #include "Sound\NoiseGenerator.h"
+#include "Sound\WaveGenerator.h"
 
 #include <fstream>
 #include <cstdlib>
@@ -14,7 +15,7 @@ APU::APU(Memory* mem) : mem(mem)
 	{
 		std::make_unique<ToneGenerator>(this, 0, true),
 		std::make_unique<ToneGenerator>(this, 1, false),
-		std::make_unique<MockGenerator>(this, 2),
+		std::make_unique<WaveGenerator>(this, 2),
 		std::make_unique<MockGenerator>(this, 3)
 	};
 };
@@ -26,6 +27,8 @@ void APU::process_sound_IO_write(uint16_t addr, uint8_t value)
 		generator_index = 0;
 	else if (IN_RANGE(addr, Memory::ADDR_IO_NR21, Memory::ADDR_IO_NR24))
 		generator_index = 1;
+	else if (IN_RANGE(addr, Memory::ADDR_IO_NR30, Memory::ADDR_IO_NR34))
+		generator_index = 2;
 	else if (IN_RANGE(addr, Memory::ADDR_IO_NR41, Memory::ADDR_IO_NR44))
 		generator_index = 3;
 	else if (IN_RANGE(addr, Memory::ADDR_IO_NR50, Memory::ADDR_IO_NR52))
@@ -43,7 +46,9 @@ void APU::process_NR5x_write(uint16_t addr, uint8_t value)
 {
 	if (addr == Memory::ADDR_IO_NR50)
 	{
-		volume = (((value >> 4) & 0b111) + (value & 0b111)) / 14.0;
+		int8_t volume1 = (value >> 4) & 0b111;
+		int8_t volume2 = value & 0b111;
+		volume = ((volume1 > volume2) ? volume1 : volume2) / 7.0;
 	}
 	else if (addr == Memory::ADDR_IO_NR51)
 	{
@@ -58,12 +63,22 @@ void APU::process_NR5x_write(uint16_t addr, uint8_t value)
 
 void APU::update_generator_status(uint8_t generator_number, bool status)
 {
-	uint8_t value = mem->read_byte(Memory::ADDR_IO_NR52);
+	uint8_t value = mem->read_IO_byte(Memory::ADDR_IO_NR52);
 	if (status == false)
 		value &= ~(1 << generator_number);
 	else
 		value |= (1 << generator_number);
-	mem->write_byte(Memory::ADDR_IO_NR52, value);
+	mem->write_IO_byte(Memory::ADDR_IO_NR52, value);
+}
+
+void APU::get_wave_pattern_ram(std::array<uint16_t, 32>& dest)
+{
+	for (uint8_t i = 0; i < 16; i++)
+	{
+		uint8_t temp = mem->read_IO_byte(Memory::ADDR_IO_WAVE_PATTERN_RAM_START + i);
+		dest[i * 2] = temp >> 4;
+		dest[i * 2 + 1] = temp & 0xF;
+	}
 }
 
 void APU::execute_one_cycle()
@@ -74,7 +89,7 @@ void APU::execute_one_cycle()
 	{
 		// generate 1 sound sample
 		current_time -= SOUND_STEP;
-		int16_t sample_sum = 0;
+		int32_t sample_sum = 0;
 		for (uint8_t i = 0; i < 4; i++)
 			sample_sum += channel_on_off[i] * generators[i]->generate_sample(SOUND_STEP);
 		   

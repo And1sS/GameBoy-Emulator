@@ -36,6 +36,12 @@ public:
 	static constexpr uint16_t ADDR_IO_NR23   = 0xFF18;
 	static constexpr uint16_t ADDR_IO_NR24   = 0xFF19;
 
+	static constexpr uint16_t ADDR_IO_NR30   = 0xFF1A;
+	static constexpr uint16_t ADDR_IO_NR31   = 0xFF1B;
+	static constexpr uint16_t ADDR_IO_NR32   = 0xFF1C;
+	static constexpr uint16_t ADDR_IO_NR33   = 0xFF1D;
+	static constexpr uint16_t ADDR_IO_NR34   = 0xFF1E;
+
 	static constexpr uint16_t ADDR_IO_NR41   = 0xFF20;
 	static constexpr uint16_t ADDR_IO_NR42   = 0xFF21;
 	static constexpr uint16_t ADDR_IO_NR43   = 0xFF22;
@@ -44,6 +50,8 @@ public:
 	static constexpr uint16_t ADDR_IO_NR50   = 0xFF24;
 	static constexpr uint16_t ADDR_IO_NR51   = 0xFF25;
 	static constexpr uint16_t ADDR_IO_NR52   = 0xFF26;
+
+	static constexpr uint16_t ADDR_IO_WAVE_PATTERN_RAM_START = 0xFF30;
 
 	static constexpr uint16_t ADDR_IO_LCDC   = 0xFF40;
 	static constexpr uint16_t ADDR_IO_STAT   = 0xFF41;

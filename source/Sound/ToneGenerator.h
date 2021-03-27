@@ -32,7 +32,7 @@ private:
 	int8_t  current_volume = 0;
 
 	uint16_t frequency_specifier = 1792; // x; frequency = 131072/(2048-x) Hz
-	double   frequency = 131072.0 / (2048 - 1792);
+	double   frequency = 512;
 
 	bool frequency_changed = true;
 
@@ -81,7 +81,6 @@ inline void ToneGenerator::handle_envelope(double elapsed_time)
 	}
 }
 
-// elapsed_time is assumed to be constant
 inline int16_t ToneGenerator::_generate_sample(double elapsed_time)
 {
 	if (frequency_changed)

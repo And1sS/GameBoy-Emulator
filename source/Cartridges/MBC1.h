@@ -25,7 +25,7 @@ public:
 
 MBC1::MBC1(std::vector<uint8_t> data) : Cartridge(data)
 {
-	number_of_rom_banks = data.size() / (16 * KB);
+	number_of_rom_banks = data.size() / (16_KB);
 	bank_addr_bits = 0;
 	uint8_t temp = number_of_rom_banks;
 	while (temp > 1)
@@ -58,7 +58,7 @@ void MBC1::write_byte(uint16_t addr, uint8_t value)
 			if (!large_rom || (banking_mode == 1)) // ram banking mode
 				upper_rom_bank_number = 0;
 			current_rom_bank = cartridge.data() + ((upper_rom_bank_number << 5)
-				+ lower_rom_bank_number) * 16 * KB;
+				+ lower_rom_bank_number) * 16_KB;
 		}
 		else if (IN_RANGE(addr, 0x4000, 0x5FFF)) // 4000-5FFF - RAM Bank Number - or - Upper Bits of ROM Bank Number (Write Only)
 		{
@@ -67,10 +67,10 @@ void MBC1::write_byte(uint16_t addr, uint8_t value)
 			if (large_rom && (banking_mode == 0)) // rom banking mode
 			{
 				current_rom_bank = cartridge.data() + ((ram_or_upper_rom_bank_number << 5)
-					+ lower_rom_bank_number) * 16 * KB;
+					+ lower_rom_bank_number) * 16_KB;
 			}
 			if (large_ram && (banking_mode == 1)) // ram banking mode
-				current_ram_bank = external_RAM.data() + ram_or_upper_rom_bank_number * 8 * KB;
+				current_ram_bank = external_RAM.data() + ram_or_upper_rom_bank_number * 8_KB;
 		}
 		else if (IN_RANGE(addr, 0x6000, 0x7FFF)) // 6000-7FFF - Banking Mode Select (Write Only)
 		{
@@ -81,7 +81,7 @@ void MBC1::write_byte(uint16_t addr, uint8_t value)
 			if (banking_mode == 0) // rom banking mode
 				current_ram_bank = external_RAM.data();
 			else if (large_ram) // ram banking mode
-				current_ram_bank = external_RAM.data() + ram_or_upper_rom_bank_number * 8 * KB;
+				current_ram_bank = external_RAM.data() + ram_or_upper_rom_bank_number * 8_KB;
 		}
 	}
 	else if (ram_enabled)

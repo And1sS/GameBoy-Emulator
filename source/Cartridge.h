@@ -1,12 +1,9 @@
 #pragma once
 
 #include <vector>
-#include <memory>
 #include <cstdint>
 
 #include "util.h"
-
-static constexpr size_t KB = 1024;
 
 class Cartridge
 {
@@ -27,9 +24,9 @@ public:
 	const uint8_t* get_rom_switch_bank() const { return current_rom_bank; }
 };
 
-Cartridge::Cartridge(std::vector<uint8_t> data) : cartridge(data), external_RAM(8 * KB, 0)
+Cartridge::Cartridge(std::vector<uint8_t> data) : cartridge(data), external_RAM(8_KB, 0)
 {
-	current_rom_bank = cartridge.data() + 16 * KB;
+	current_rom_bank = cartridge.data() + 16_KB;
 	current_ram_bank = external_RAM.data();
 }
 
@@ -61,7 +58,7 @@ static Cartridge* create_cartridge(std::vector<uint8_t> data)
 	//if (ram_size_flag != 0)
 	//	throw std::runtime_error("external ram is not supported");
 
-	//memcpy(mem.data(), cartridge.data(), 32 * KB);
+	//memcpy(mem.data(), cartridge.data(), 32_KB);
 
 	uint8_t rom_type = data[0x147]; // 0147 - Cartridge Type
 	if (rom_type == 0)  // 00h  ROM ONLY
