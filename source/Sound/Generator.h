@@ -15,6 +15,8 @@ public:
 
 	virtual ~Generator() {};
 
+	void turn_off() { turned_on = false; }
+
 protected:
 	APU*    apu;
 	uint8_t number;

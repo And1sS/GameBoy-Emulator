@@ -55,6 +55,8 @@ void WaveGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 
 			apu->update_generator_status(number, true);
 		}
+		if (!restart)
+			turned_on = false;
 
 		infinite_sound = !GET_BIT(value, 6); // Bit 6 - Counter/consecutive selection (Read/Write)
 											 // (1 = Stop output when length in NR21 expires)

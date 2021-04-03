@@ -42,6 +42,9 @@ void ToneGenerator::process_sound_IO_write(uint16_t addr, uint8_t value)
 		envelope_initial_volume = value >> 4;				// Bit 7-4 - Initial Volume of envelope (0-0Fh) (0=No Sound)
 		envelope_direction = GET_BIT(value, 3) ? 1 : -1;	// Bit 3   - Envelope Direction (0=Decrease, 1=Increase)
 
+		if (envelope_initial_volume == 0)
+			turned_on = false;
+
 		// Length of 1 step = n*(1/64) seconds
 		// Bit 2-0 - Number of envelope sweep (n: 0-7) (If zero, stop envelope operation.)
 		envelope_step = (value & 0b111) / 64.0;

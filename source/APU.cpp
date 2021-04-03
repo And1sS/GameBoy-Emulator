@@ -33,10 +33,14 @@ void APU::process_sound_IO_write(uint16_t addr, uint8_t value)
 		generator_index = 3;
 	else if (IN_RANGE(addr, Memory::ADDR_IO_NR50, Memory::ADDR_IO_NR52))
 	{
-		process_NR5x_write(addr, value);
+		if (global_on_off || addr == Memory::ADDR_IO_NR52)
+			process_NR5x_write(addr, value);
 		return;
 	}
 	else
+		return;
+
+	if (!global_on_off)
 		return;
 
 	generators[generator_index]->process_sound_IO_write(addr, value); 
@@ -46,9 +50,9 @@ void APU::process_NR5x_write(uint16_t addr, uint8_t value)
 {
 	if (addr == Memory::ADDR_IO_NR50)
 	{
-		int8_t volume1 = (value >> 4) & 0b111;
-		int8_t volume2 = value & 0b111;
-		volume = ((volume1 > volume2) ? volume1 : volume2) / 7.0;
+		int8_t volume_left = (value >> 4) & 0b111;
+		int8_t volume_right = value & 0b111;			
+		volume = ((volume_left > volume_right) ? volume_left : volume_right) / 7.0;
 	}
 	else if (addr == Memory::ADDR_IO_NR51)
 	{
@@ -58,17 +62,21 @@ void APU::process_NR5x_write(uint16_t addr, uint8_t value)
 	else
 	{
 		global_on_off = GET_BIT(value, 7);
+
+		if (global_on_off)
+			return;
+
+		for (uint8_t i = 0; i < 4; i++)
+			generators[i]->turn_off();
 	}
 }
 
 void APU::update_generator_status(uint8_t generator_number, bool status)
 {
-	uint8_t value = mem->read_IO_byte(Memory::ADDR_IO_NR52);
-	if (status == false)
-		value &= ~(1 << generator_number);
+	if (status)
+		mem->set_IO_flag(Memory::ADDR_IO_NR52, generator_number);
 	else
-		value |= (1 << generator_number);
-	mem->write_IO_byte(Memory::ADDR_IO_NR52, value);
+		mem->reset_IO_flag(Memory::ADDR_IO_NR52, generator_number);
 }
 
 void APU::get_wave_pattern_ram(std::array<uint16_t, 32>& dest)

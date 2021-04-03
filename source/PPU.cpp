@@ -16,17 +16,22 @@ void PPU::switch_mode()
 	switch (mode)
 	{
 	case Mode::DISABLED:
+	{
 		mem->write_byte(Memory::ADDR_IO_LY, 0);
 		_switch_mode_to(Mode::OAM_SEARCH);
 		break;
+	}
 	case Mode::H_BLANK:
+	{
 		INC_LY;
 		if (mem->read_byte(Memory::ADDR_IO_LY) < 144)
 			_switch_mode_to(Mode::OAM_SEARCH);
 		else
 			_switch_mode_to(Mode::V_BLANK);
 		break;
+	}
 	case Mode::V_BLANK:
+	{
 		if (mem->read_byte(Memory::ADDR_IO_LY) < 153)
 			INC_LY;
 		else
@@ -35,9 +40,12 @@ void PPU::switch_mode()
 			_switch_mode_to(Mode::OAM_SEARCH);
 		}
 		break;
+	}
 	case Mode::OAM_SEARCH:
+	{
 		_switch_mode_to(Mode::PIXEL_DRAWING);
 		break;
+	}
 	case Mode::PIXEL_DRAWING:
 		_switch_mode_to(Mode::H_BLANK);
 	}
@@ -136,26 +144,27 @@ void PPU::execute_oam_search()
 	uint8_t LY = mem->read_byte(Memory::ADDR_IO_LY);
 	uint8_t h = mem->get_IO_flag(Memory::ADDR_IO_LCDC, 2) ? 16 : 8; // Bit 2 - OBJ (Sprite) Size(0 = 8x8, 1 = 8x16)
 
-	
 	size_t sprites_added = 0;
 	for (size_t i = 0; i < SPRITES_QUANTITY; i++)
 		if (IN_RANGE(sprites[i].y, LY + 16 - h + 1, LY + 16))
 		{
 			buff.push_back(sprites[i]);
+
+			if (h == 16)
+				buff.back().tile_number &= 0xfe; // the least significant bit of the tile index is ignored
+
 			sprites_added++;
 			if (sprites_added == MAX_SPRITES_PER_LINE)
 				break;
 		}
-	
+
 	int32_t n = buff.size();
 	for (int32_t i = 0; i < n - 1; i++)
-	{
 		for (int32_t j = 0; j < n - i - 1; j++)
 		{
 			if (buff[j].x > buff[j + 1].x)
 				std::swap(buff[j], buff[j + 1]);
 		}
-	}
 }
 
 void PPU::execute_pixel_drawing()
@@ -316,11 +325,12 @@ void PPU::draw_sprites()
 		bool flip_x = GET_BIT(sprite.flags, 5); // Bit5   X flip (0 = Normal, 1 = Horizontally mirrored)
 		bool flip_y = GET_BIT(sprite.flags, 6); // Bit6   Y flip (0 = Normal, 1 = Vertically mirrored)
 
-		uint16_t line_address = ADDR_SPRITES_DATA_START + sprite.tile_number * 16;
-		if (!flip_y)
-			line_address += (LY - (sprite.y - 16)) * 2;
-		else
-			line_address += ((h - 1) - (LY - (sprite.y - 16))) * 2;
+		uint8_t line_in_sprite = LY - (sprite.y - 16);
+		if (flip_y)
+			line_in_sprite = (h - 1) - line_in_sprite;
+
+		uint16_t line_address = ADDR_SPRITES_DATA_START + sprite.tile_number * 16
+			+ line_in_sprite * 2;
 
 		std::array<uint8_t, 8> pixel_line = bytes_to_pixel_line(line_address);
 

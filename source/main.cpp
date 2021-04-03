@@ -5,12 +5,16 @@
 #include <iostream>
 #include <fstream>
 #include <atomic>
+#include <mutex>
 
 #include "Memory.h"
 #include "CPU.h"
 #include "PPU.h"
 #include "APU.h"
 #include "Timer.h"
+
+bool is_apu_present;
+std::mutex is_apu_present_guard;
 
 class Stream : public sf::SoundStream
 {
@@ -20,6 +24,7 @@ private:
     static constexpr size_t samples_count = samples_count_sec * APU::BIT_RATE;
 
     size_t last_read_pos = 0;
+
     APU* apu;
 
     std::array<int16_t, samples_count> temp = {0};
@@ -31,12 +36,22 @@ public:
 
     bool onGetData(Chunk& data) override
     {
+        std::unique_lock lock(is_apu_present_guard);
+        if (!is_apu_present)
+            return false;
+
         size_t cur_pos = apu->get_cur_pos();
         int available_length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
 
         while (available_length < samples_count)
         {
+            lock.unlock();
             sf::sleep(sf::milliseconds(2));
+            lock.lock();
+
+            if (!is_apu_present)
+                return false;
+
             cur_pos = apu->get_cur_pos();
             available_length = (cur_pos - last_read_pos + APU::BUFFER_SIZE) % APU::BUFFER_SIZE;
         }
@@ -59,7 +74,7 @@ public:
         data.samples = temp.data();
 
         last_read_pos = new_last_read_pos;
-        
+
         return true;
     }
 
@@ -126,6 +141,7 @@ int main(int argc, char** argv)
         cpu = new CPU(mem, timer);
         ppu = new PPU(mem);
         apu = new APU(mem);
+        is_apu_present = true;
 
         mem->set_timer(timer);
         mem->set_PPU(ppu);
@@ -235,7 +251,10 @@ int main(int argc, char** argv)
         window.display();
     }
 
+    is_apu_present_guard.lock();
     delete apu;
+    is_apu_present = false;
+    is_apu_present_guard.unlock();
     delete ppu;
     delete cpu;
     delete timer;
